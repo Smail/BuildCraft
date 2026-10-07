@@ -82,6 +82,9 @@ jobs:
       - name: Validate 26.1.2 target structure
         run: python scripts/validate-26.1.2-target.py
 
+      - name: Test 26.3 target structure
+        run: python scripts/tests/test_263_target.py
+
       - name: Validate Zone Planner block preview parity
         run: python scripts/validate-zone-planner-preview.py
 
@@ -168,6 +171,9 @@ jobs:
             generation: 1.21.X
             java: '21'
           - target: 26.1.2-neoforge
+            generation: 26.X
+            java: '25'
+          - target: 26.3-neoforge
             generation: 26.X
             java: '25'
     env:

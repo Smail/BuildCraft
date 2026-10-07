@@ -30,6 +30,7 @@ TARGETS = (
     ("1.21.1-neoforge", "1.21.X", 21),
     ("1.21.11-neoforge", "1.21.X", 21),
     ("26.1.2-neoforge", "26.X", 25),
+    ("26.3-neoforge", "26.X", 25),
 )
 VALIDATE_STEPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Validate independent Stonecutter builds", (sys.executable, "scripts/validate-stonecutter.py")),
@@ -44,6 +45,7 @@ VALIDATE_STEPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Validate cross-version gameplay parity", (sys.executable, "scripts/validate-behavior-parity.py")),
     ("Validate 1.21.11 parity", (sys.executable, "scripts/validate-1.21.11-parity.py")),
     ("Validate 26.1.2 target structure", (sys.executable, "scripts/validate-26.1.2-target.py")),
+    ("Test 26.3 target structure", (sys.executable, "scripts/tests/test_263_target.py")),
     ("Validate Zone Planner block preview parity", (sys.executable, "scripts/validate-zone-planner-preview.py")),
     ("Validate FE compatibility", (sys.executable, "scripts/validate-fe-compat.py")),
     ("Validate FE Engine and MJ Dynamo parity", (sys.executable, "scripts/validate-fe-mj-engine-parity.py")),
