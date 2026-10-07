@@ -3,6 +3,7 @@ package buildcraft.energy.generation.features;
 import java.util.List;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.resources.ResourceLocation;
@@ -14,7 +15,7 @@ public record OilFeatureConfiguration(List<ResourceLocation> excludedBiomes, Lis
         boolean genOilInEveryVanillaBiomes, boolean genOilInEveryModBiomes,
         GenSetting genSetting) implements FeatureConfiguration {
 
-    public static final Codec<OilFeatureConfiguration> CODEC = RecordCodecBuilder.create(instance ->
+    public static final MapCodec<OilFeatureConfiguration> MAP_CODEC = RecordCodecBuilder.mapCodec(instance ->
         instance.group(
             Codec.list(ResourceLocation.CODEC).fieldOf("excludedBiomes").forGetter(OilFeatureConfiguration::excludedBiomes),
             Codec.list(ExcessiveBiome.CODEC).fieldOf("excessiveBiomes").forGetter(OilFeatureConfiguration::excessiveBiomes),
@@ -25,6 +26,8 @@ public record OilFeatureConfiguration(List<ResourceLocation> excludedBiomes, Lis
             GenSetting.CODEC.fieldOf("oilStructureSetting").forGetter(OilFeatureConfiguration::genSetting)
         ).apply(instance, OilFeatureConfiguration::new)
     );
+
+    public static final Codec<OilFeatureConfiguration> CODEC = MAP_CODEC.codec();
 
     public record GenSetting(BlockState oilState, double smallOilGenProb, double mediumOilGenProb,
             double largeOilGenProb) {

@@ -14,15 +14,26 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.equipment.Equippable;
+//? if >=26.3 {
+import java.util.Optional;
+
+import net.minecraft.world.item.component.CookingFuel;
+import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
+//?} else {
+import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.entity.FuelValues;
+//?}
 import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -84,6 +95,34 @@ public final class ItemCompat {
         };
     }
 
+    //? if >=26.3 {
+    /**
+     * Furnace fuel is the data-driven {@link DataComponents#COOKING_FUEL} component. Referenced burn times are resolved
+     * against the live server registries. Without a server (client-side slot checks) a referenced value cannot be
+     * resolved, so the vanilla standard burn time is reported for any item that carries the component.
+     */
+    public static int getBurnTime(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return 0;
+        CookingFuel fuel = stack.get(DataComponents.COOKING_FUEL);
+        if (fuel == null) return 0;
+
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) {
+            return fuel.burnTime() instanceof ResolvableInt.Constant constant
+                ? Math.max(0, constant.value())
+                : AbstractFurnaceBlockEntity.BURN_TIME_STANDARD;
+        }
+        try {
+            LootContext context = new LootContext.Builder(
+                new LootParams.Builder(server.overworld()).create(LootContextParamSets.EMPTY)
+            ).create(Optional.empty());
+            return Math.max(0, ResolvableInt.getFromItem(stack, DataComponents.COOKING_FUEL, CookingFuel::burnTime, context, 0));
+        } catch (RuntimeException e) {
+            // A datapack provider that needs furnace-only context parameters cannot be evaluated for an engine.
+            return AbstractFurnaceBlockEntity.BURN_TIME_STANDARD;
+        }
+    }
+    //?} else {
     /**
      * The current API exposes furnace fuel data through the level fuel-values table rather than a one-argument stack helper.
      * Prefer the live server FuelValues so datapack and NeoForge fuel overrides are respected.
@@ -98,6 +137,7 @@ public final class ItemCompat {
             : FuelValues.vanillaBurnTimes(ItemStackUtil.requireActiveRegistryProvider(), FeatureFlags.DEFAULT_FLAGS);
         return stack.getBurnTime(RecipeType.SMELTING, values);
     }
+    //?}
 
     @Nonnull
     public static ItemStack getCraftingRemainingItem(ItemStack stack) {

@@ -1790,15 +1790,15 @@ public final class GuiGuide extends Screen {
             onClose();
             return true;
         }
-        if (keyCode == 263) {
+        if (keyCode == InputConstants.KEY_LEFT) {
             changeSpread(-1);
             return true;
         }
-        if (keyCode == 262) {
+        if (keyCode == InputConstants.KEY_RIGHT) {
             changeSpread(1);
             return true;
         }
-        if (keyCode == 259 && view == View.DOCUMENT) {
+        if (keyCode == InputConstants.KEY_BACKSPACE && view == View.DOCUMENT) {
             goBack();
             return true;
         }

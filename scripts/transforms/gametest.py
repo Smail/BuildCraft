@@ -287,6 +287,12 @@ def generate_gametest_registry(
         lines.append("")
     # 26.1 appended `int padding` to TestData; 0 matches the vanilla codec default.
     test_data_tail = "false, 0" if version_tuple(minecraft) >= version_tuple("26.1") else "false"
+    # 26.3 inserted `ResourceKey<Level> dimension` after the environment; the codec default is the overworld.
+    test_data_dimension = (
+        ["                net.minecraft.world.level.Level.OVERWORLD,"]
+        if version_tuple(minecraft) >= version_tuple("26.3")
+        else []
+    )
     for index, entry in enumerate(entries):
         ns = str(entry["test_namespace"])
         template_ns = str(entry["template_namespace"])
@@ -300,6 +306,7 @@ def generate_gametest_registry(
             f"            ResourceKey.create(BuiltInRegistries.TEST_FUNCTION.key(), test{index}),",
             "            new TestData<>(",
             f"                {env_vars[ns]},",
+            *test_data_dimension,
             f"                Identifier.fromNamespaceAndPath({template_ns}, {template}),",
             f"                {timeout}, 0, true, Rotation.NONE, false, 1, 1, {test_data_tail}",
             "            )",

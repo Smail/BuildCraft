@@ -13,7 +13,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 /**
  * 1.21.11 world renderer for connected BuildCraft marker geometry.
@@ -26,16 +25,15 @@ public final class MarkerSubmitRenderer121111 {
     private MarkerSubmitRenderer121111() {
     }
 
-    public static void submit(RenderLevelStageEvent.AfterTranslucentBlocks event) {
+    /** Registered through {@link WorldGeometryEvents}. */
+    public static void submit(PoseStack pose, Matrix4f matrix) {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         Player player = minecraft.player;
-        PoseStack pose = event.getPoseStack();
-        if (level == null || player == null || pose == null) {
+        if (level == null || player == null) {
             return;
         }
 
-        Matrix4f matrix = new Matrix4f(event.getModelViewMatrix());
         LaserRenderer_BC8.setupLaserRenderState();
         DetachedRenderer.fromWorldOriginPre(pose, matrix, 0.0F);
         try {

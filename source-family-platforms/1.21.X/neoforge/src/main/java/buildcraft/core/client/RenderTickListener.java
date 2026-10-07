@@ -46,7 +46,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import buildcraft.lib.compat.LevelCompat;
 import net.minecraft.util.profiling.Profiler;
 
@@ -150,14 +149,13 @@ public final class RenderTickListener {
         }
     }
 
-    public static void renderLast(RenderLevelStageEvent.AfterTranslucentBlocks event) {
+    /** Registered through {@link WorldGeometryEvents}. */
+    public static void renderLast(PoseStack poseStack, Matrix4f matrix) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) {
             return;
         }
 
-        PoseStack poseStack = event.getPoseStack();
-        Matrix4f matrix = new Matrix4f(event.getModelViewMatrix());
         try {
             renderHeldItemInWorld(poseStack, matrix, 0.0F);
         } finally {

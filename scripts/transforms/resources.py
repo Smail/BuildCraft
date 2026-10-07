@@ -674,6 +674,143 @@ def generate_legacy_resources_from_modern_canonical(
     return generated
 
 
+def _flatten_263_feature(feature: object, *, source: Path) -> object:
+    """Inline a pre-26.3 ``{"type", "config"}`` feature into the 26.3 flat form.
+
+    References (strings) are returned unchanged. Since 26.3 a feature is one
+    dispatched value, so its configuration fields sit next to ``type``.
+    """
+    if isinstance(feature, str):
+        return feature
+    if not isinstance(feature, dict) or not isinstance(feature.get("type"), str):
+        raise ValueError(f"unsupported feature definition in {source}")
+    config = feature.get("config", {})
+    if not isinstance(config, dict):
+        raise ValueError(f"feature config must be an object in {source}")
+    clashes = set(config) & {"type"}
+    if clashes:
+        raise ValueError(f"feature config redefines {sorted(clashes)} in {source}")
+    flattened = {"type": feature["type"]}
+    flattened.update(config)
+    return _upgrade_263_block_states(flattened, source=source)
+
+
+def _upgrade_263_block_states(node: object, *, source: Path) -> object:
+    """Rewrite pre-26.3 ``{"Name", "Properties"}`` block states to the 26.3 codec.
+
+    26.3 encodes a default state as the plain block id and any other state as
+    ``{"id", "properties"}``.
+    """
+    if isinstance(node, list):
+        return [_upgrade_263_block_states(item, source=source) for item in node]
+    if not isinstance(node, dict):
+        return node
+    if "Name" in node and set(node) <= {"Name", "Properties"}:
+        name = node["Name"]
+        if not isinstance(name, str):
+            raise ValueError(f"block state Name must be a string in {source}")
+        properties = node.get("Properties")
+        if not properties:
+            return name
+        if not isinstance(properties, dict):
+            raise ValueError(f"block state Properties must be an object in {source}")
+        return {"id": name, "properties": properties}
+    return {key: _upgrade_263_block_states(value, source=source) for key, value in node.items()}
+
+
+def migrate_263_feature_resources(destination_root: Path, *, minecraft: str) -> int:
+    """Move configured features to the 26.3 ``worldgen/feature`` registry layout.
+
+    26.3 merged ``Feature`` and ``ConfiguredFeature``: configured feature data now
+    lives in ``worldgen/feature`` with flattened configuration, and placed
+    features embed or reference those values directly.
+    """
+    if _version_tuple(minecraft) < _version_tuple("26.3"):
+        return 0
+    data_root = destination_root / "src/main/resources/data"
+    if not data_root.is_dir():
+        return 0
+
+    migrated = 0
+    for namespace_root in sorted(path for path in data_root.iterdir() if path.is_dir()):
+        legacy_root = namespace_root / "worldgen/configured_feature"
+        if legacy_root.is_dir():
+            feature_root = namespace_root / "worldgen/feature"
+            for source in sorted(legacy_root.rglob("*.json")):
+                try:
+                    data = json.loads(source.read_text(encoding="utf-8"))
+                except json.JSONDecodeError as error:
+                    raise ValueError(f"invalid configured feature JSON {source}: {error}") from error
+                output = feature_root / source.relative_to(legacy_root)
+                if output.exists():
+                    raise ValueError(f"26.3 feature migration would overwrite {output}")
+                _write_generated_json(output, _flatten_263_feature(data, source=source))
+                source.unlink()
+                migrated += 1
+            shutil.rmtree(legacy_root)
+
+        placed_root = namespace_root / "worldgen/placed_feature"
+        if placed_root.is_dir():
+            for source in sorted(placed_root.rglob("*.json")):
+                try:
+                    data = json.loads(source.read_text(encoding="utf-8"))
+                except json.JSONDecodeError as error:
+                    raise ValueError(f"invalid placed feature JSON {source}: {error}") from error
+                if not isinstance(data, dict) or "feature" not in data:
+                    raise ValueError(f"placed feature without a feature in {source}")
+                flattened = _flatten_263_feature(data["feature"], source=source)
+                if flattened is not data["feature"]:
+                    data["feature"] = flattened
+                    # In-place format migration of an already materialized file, not a new generated resource.
+                    source.write_text(
+                        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline=""
+                    )
+                    migrated += 1
+    return migrated
+
+
+def _upgrade_263_criteria(data: object, *, source: Path) -> bool:
+    """Rename pre-26.3 criterion fields in place. Returns whether anything changed."""
+    if not isinstance(data, dict):
+        raise ValueError(f"advancement must be an object in {source}")
+    criteria = data.get("criteria", {})
+    if not isinstance(criteria, dict):
+        raise ValueError(f"advancement criteria must be an object in {source}")
+    changed = False
+    for name, criterion in criteria.items():
+        if not isinstance(criterion, dict):
+            raise ValueError(f"advancement criterion {name} must be an object in {source}")
+        conditions = criterion.get("conditions")
+        # recipe_unlocked matches a recipe holder set ("recipes") instead of one recipe id since 26.3.
+        if criterion.get("trigger") == "minecraft:recipe_unlocked" and isinstance(conditions, dict):
+            if "recipe" in conditions:
+                if "recipes" in conditions:
+                    raise ValueError(f"criterion {name} has both recipe and recipes in {source}")
+                conditions["recipes"] = conditions.pop("recipe")
+                changed = True
+    return changed
+
+
+def migrate_263_advancement_resources(destination_root: Path, *, minecraft: str) -> int:
+    """Upgrade materialized advancement JSON to the 26.3 criterion codecs."""
+    if _version_tuple(minecraft) < _version_tuple("26.3"):
+        return 0
+    data_root = destination_root / "src/main/resources/data"
+    if not data_root.is_dir():
+        return 0
+    migrated = 0
+    for source in sorted(data_root.glob("*/advancement/**/*.json")):
+        try:
+            data = json.loads(source.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise ValueError(f"invalid advancement JSON {source}: {error}") from error
+        if _upgrade_263_criteria(data, source=source):
+            # In-place format migration of an already materialized file, not a new generated resource.
+            source.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="")
+            migrated += 1
+    return migrated
+
+
 def generate_target_resources(
     destination_root: Path, *, minecraft: str, family: str, platform: str
 ) -> int:
@@ -693,4 +830,6 @@ def generate_target_resources(
     generated += generate_legacy_resources_from_modern_canonical(
         destination_root, minecraft=minecraft, family=family, platform=platform
     )
+    generated += migrate_263_feature_resources(destination_root, minecraft=minecraft)
+    generated += migrate_263_advancement_resources(destination_root, minecraft=minecraft)
     return generated

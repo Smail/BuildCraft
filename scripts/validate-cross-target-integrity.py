@@ -298,9 +298,15 @@ def validate_machine_fluid_drop_ownership(props: dict[str, str]) -> None:
 def validate_metadata(props: dict[str, str]) -> None:
     for target in target_ids(props):
         version = props[f"target.{target}.deps.minecraft"]
-        parts = [int(x) for x in version.split(".")]
+        try:
+            parts = [int(x) for x in version.split(".")]
+        except ValueError:
+            fail(f"{target}: expected numeric Minecraft version, got {version}")
+        # Mojang omits the patch number on the first release of a line (26.3 == 26.3.0).
+        if len(parts) == 2:
+            parts.append(0)
         if len(parts) != 3:
-            fail(f"{target}: expected x.y.z Minecraft version, got {version}")
+            fail(f"{target}: expected x.y or x.y.z Minecraft version, got {version}")
         upper = f"{parts[0]}.{parts[1]}.{parts[2] + 1}"
         expected = f"[{version},{upper})"
         actual = props.get(f"target.{target}.minecraft.version_range")
