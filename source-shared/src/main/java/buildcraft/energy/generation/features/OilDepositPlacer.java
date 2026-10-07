@@ -1,8 +1,11 @@
+/*
+ * Copyright (c) 2026 the BuildCraft Community Edition contributors
+ * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
+ * distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/
+ */
 package buildcraft.energy.generation.features;
 
 import java.util.List;
-
-import com.mojang.serialization.Codec;
 
 import buildcraft.api.v2.BuildCraftApi;
 import buildcraft.api.v2.BuildCraftServices;
@@ -12,35 +15,36 @@ import buildcraft.api.v2.worldgen.WorldgenService;
 import buildcraft.energy.BCEnergyConfig;
 import buildcraft.lib.misc.data.Box;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.level.ChunkPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 
-public class OilGenFeature extends Feature<OilFeatureConfiguration>{
-	
+/**
+ * Version-independent oil deposit placement. Each Minecraft version only adds a thin {@link OilGenFeature}
+ * adapter for its own feature API.
+ */
+public final class OilDepositPlacer {
     /** The distance that oil generation will be checked to see if their structures overlap with the currently
      * generating chunk. This should be large enough that all oil generation can fit inside this radius. If this number
      * is too big then oil generation will be slightly slower */
     private static final int MAX_CHUNK_RADIUS = 5;
-    
 
-	public OilGenFeature(Codec<OilFeatureConfiguration> p_65786_) {
-		super(p_65786_);
-	}
+    private OilDepositPlacer() {}
 
-	@Override
-	public boolean place(FeaturePlaceContext<OilFeatureConfiguration> pfc) {
-        WorldGenLevel world = pfc.level();
+    /** @return whether any oil was placed into the chunk containing {@code origin} */
+    public static boolean place(WorldGenLevel world, BlockPos origin, RandomSource random,
+            OilFeatureConfiguration config) {
+        if (world == null || origin == null || random == null || config == null) {
+            return false;
+        }
         if (!BCEnergyConfig.enableOilGeneration) {
             return false;
         }
 
-        ResourceDepositRule rule = resolveOilRule(world, contextOrigin(pfc));
+        ResourceDepositRule rule = resolveOilRule(world, origin);
         if (rule == null) {
             return false;
         }
@@ -49,25 +53,15 @@ public class OilGenFeature extends Feature<OilFeatureConfiguration>{
             return false;
         }
         double frequency = rule.frequencyMultiplier();
-        if (frequency <= 0 || (frequency < 1.0 && pfc.random().nextDouble() >= frequency)) {
+        if (frequency <= 0 || (frequency < 1.0 && random.nextDouble() >= frequency)) {
             return false;
         }
 
-        BlockPos originPos = pfc.origin();
-        ChunkPos chunkPos = new ChunkPos(originPos);
-        int chunkX = chunkPos.x;
-        int chunkZ = chunkPos.z;
-
-        // OilGenerator still mirrors BC8's short-lived shared cache. Worldgen may run dimensions in parallel, so
-        // protect the complete cache/config transaction instead of allowing one worker to replace another's world.
+        // OilGenerator uses a short-lived shared cache. Worldgen may run dimensions in parallel,
+        // so protect the complete world/config/cache transaction.
         synchronized (OilGenerator.class) {
-            return placeLocked(world, chunkX, chunkZ, pfc.config());
+            return placeLocked(world, origin.getX() >> 4, origin.getZ() >> 4, config);
         }
-    }
-
-
-    private static BlockPos contextOrigin(FeaturePlaceContext<OilFeatureConfiguration> context) {
-        return context.origin();
     }
 
     private static ResourceDepositRule resolveOilRule(WorldGenLevel world, BlockPos origin) {
@@ -83,60 +77,41 @@ public class OilGenFeature extends Feature<OilFeatureConfiguration>{
             .filter(rule -> rule.profile().equals(BuildCraftContentIds.Worldgen.STANDARD_OIL))
             .filter(rule -> rule.target().matches(
                 dimension, biome,
-                tagId -> dimensionType.is(TagKey.create(Registry.DIMENSION_TYPE_REGISTRY, tagId)),
-                tagId -> biomeHolder.is(TagKey.create(Registry.BIOME_REGISTRY, tagId))
+                tagId -> dimensionType.is(TagKey.create(Registries.DIMENSION_TYPE, tagId)),
+                tagId -> biomeHolder.is(TagKey.create(Registries.BIOME, tagId))
             ))
             .sorted(java.util.Comparator.comparingInt(ResourceDepositRule::priority).reversed()
                 .thenComparing(rule -> rule.id().toString()))
             .findFirst().orElse(null);
     }
 
-    private boolean placeLocked(WorldGenLevel world, int chunkX, int chunkZ, OilFeatureConfiguration configuration) {
-        OilGenerator.config = configuration;
-
-/*        if (world.getLevelType() == LevelType.FLAT) {
-            if (DEBUG_OILGEN_BASIC) {
-                BCLog.logger.info(
-                    "[energy.oilgen] Not generating oil in " + world + " chunk " + chunkX + ", " + chunkZ
-                        + " because it's LevelType is FLAT."
-                );
-            }
-            return;
-        }*/
-//        world.profiler.startSection("bc_oil");
+    private static boolean placeLocked(WorldGenLevel world, int chunkX, int chunkZ,
+            OilFeatureConfiguration configuration) {
+        OilGenerator.setConfiguration(configuration);
         int count = 0;
         BlockPos min = new BlockPos(chunkX << 4, world.getMinBuildHeight(), chunkZ << 4);
-        BlockPos max = new BlockPos((chunkX << 4) + 15, world.getMaxBuildHeight() - 1, (chunkZ << 4) + 15);
+        BlockPos max = new BlockPos((chunkX << 4) + 15, world.getMaxBuildHeight() - 1,
+                (chunkZ << 4) + 15);
         Box box = new Box(min, max);
 
         for (int cdx = -MAX_CHUNK_RADIUS; cdx <= MAX_CHUNK_RADIUS; cdx++) {
             for (int cdz = -MAX_CHUNK_RADIUS; cdz <= MAX_CHUNK_RADIUS; cdz++) {
-                int cx = chunkX + cdx;
-                int cz = chunkZ + cdz;
-//                world.getProfiler().startSection("scan");
-                List<OilStructure> structures = OilGenerator.getStructures(world, cx, cz/*, cdx == 0 && cdz == 0*/);
+                List<OilStructure> structures = OilGenerator.getStructures(world, chunkX + cdx, chunkZ + cdz);
                 OilStructure.Spring spring = null;
-//                world.getProfiler().endStartSection("gen");
-                for (OilStructure struct : structures) {
-                    struct.generate(world, box);
-                    if (struct instanceof OilStructure.Spring) {
-                        spring = (OilStructure.Spring) struct;
+                for (OilStructure structure : structures) {
+                    structure.generate(world, box);
+                    if (structure instanceof OilStructure.Spring foundSpring) {
+                        spring = foundSpring;
                     }
                 }
                 if (spring != null && box.contains(spring.pos)) {
-                    
-                    for (OilStructure struct : structures) {
-                        count += struct.countOilBlocks();
+                    for (OilStructure structure : structures) {
+                        count += structure.countOilBlocks();
                     }
                     spring.generate(world, count);
                 }
-//                world.getProfiler().pop();;
             }
         }
-//        world.getProfiler().pop();
-		return count > 0;
+        return count > 0;
     }
-
-
-
 }

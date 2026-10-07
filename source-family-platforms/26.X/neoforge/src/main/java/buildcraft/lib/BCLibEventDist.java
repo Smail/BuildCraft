@@ -4,6 +4,7 @@
  * distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 package buildcraft.lib;
 
+import buildcraft.core.client.WorldGeometryEvents;
 import buildcraft.lib.platform.client.PlatformClientRegistration;
 import buildcraft.lib.platform.client.PlatformClientModels;
 import buildcraft.lib.platform.events.PlatformClientEvents;
@@ -51,7 +52,6 @@ import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.ModelEvent.BakingCompleted;
 import net.neoforged.neoforge.client.event.ModelEvent.RegisterStandalone;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.TextureAtlasStitchedEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -119,13 +119,10 @@ public class BCLibEventDist {
 
     @EventBusSubscriber(modid = BCLib.MODID, value = Dist.CLIENT)
     public static class ClientGame {
-        @SubscribeEvent
-        public static void renderWorldLast(RenderLevelStageEvent.AfterTranslucentBlocks event) {
+        private static void renderWorldLast(PoseStack pose, Matrix4f matrix) {
             Minecraft mc = Minecraft.getInstance();
             Player player = mc.player;
             if (player == null) return;
-            PoseStack pose = event.getPoseStack();
-            Matrix4f matrix = new Matrix4f(event.getModelViewMatrix());
             float partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 
             LaserRenderer_BC8.setupLaserRenderState();
@@ -172,6 +169,7 @@ public class BCLibEventDist {
             PlatformClientEvents.login(ClientGame::onConnectToServer);
             PlatformClientEvents.logout(ClientGame::onDisconnectFromServer);
             PlatformClientEvents.tick(BCEvents.Phase.END, ClientGame::clientTick);
+            WorldGeometryEvents.register(ClientGame::renderWorldLast);
         }
     }
 

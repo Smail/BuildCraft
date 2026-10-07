@@ -70,7 +70,7 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
 
     record Vertex(float x, float y, float z, int r, int g, int b, int a, float u, float v,
         int overlayU, int overlayV, int lightU, int lightV, float nx, float ny, float nz, float width) {
-        void emit(PoseStack.Pose pose, VertexConsumer target) {
+        public void emit(PoseStack.Pose pose, VertexConsumer target) {
             target.addVertex(pose.pose(), x, y, z).setColor(r, g, b, a).setUv(u, v)
                 .setUv1(overlayU, overlayV).setUv2(lightU, lightV).setNormal(pose, nx, ny, nz)
                 .setLineWidth(width);
@@ -84,7 +84,7 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
             return layers.computeIfAbsent(type, ignored -> new RecordingConsumer());
         }
 
-        List<Layer> finish() {
+        public List<Layer> finish() {
             List<Layer> result = new ArrayList<>();
             layers.forEach((type, consumer) -> {
                 consumer.endVertex();
@@ -130,5 +130,7 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
         public VertexConsumer setUv2(int u, int v) { lightU = u; lightV = v; return this; }
         public VertexConsumer setNormal(float x, float y, float z) { nx = x; ny = y; nz = z; return this; }
         public VertexConsumer setLineWidth(float width) { this.width = width; return this; }
+        // Secondary UVs (26.3+) only feed glint/decal formats, which BuildCraft geometry never targets.
+        public VertexConsumer setUv3(float u, float v) { return this; }
     }
 }

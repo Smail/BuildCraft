@@ -60,6 +60,10 @@ public interface LegacyBlockEntityRenderer<T extends BlockEntity>
         public VertexConsumer setLineWidth(float width) {
             return this;
         }
+
+        public VertexConsumer setUv3(float u, float v) {
+            return this;
+        }
     };
 
     void render(T blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource bufferSource,

@@ -24,7 +24,6 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterDebugEntriesEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RegisterRangeSelectItemModelPropertyEvent;
-import net.neoforged.neoforge.common.NeoForge;
 
 /** Client-only Core bootstrap for the 1.21.11 renderer transition layer. */
 @EventBusSubscriber(modid = BCCore.MODID, value = Dist.CLIENT)
@@ -42,8 +41,8 @@ public final class BCCoreClientModEvents {
     public static void onClientSetup(FMLClientSetupEvent event) {
         BCCoreSprites.init();
         DetachedRenderer.INSTANCE.addRenderer(RenderMatrixType.FROM_WORLD_ORIGIN, RenderVolumeBoxes.INSTANCE);
-        NeoForge.EVENT_BUS.addListener(RenderTickListener::renderLast);
-        NeoForge.EVENT_BUS.addListener(MarkerSubmitRenderer121111::submit);
+        WorldGeometryEvents.register(RenderTickListener::renderLast);
+        WorldGeometryEvents.register(MarkerSubmitRenderer121111::submit);
     }
 
     @SubscribeEvent

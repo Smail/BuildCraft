@@ -44,6 +44,18 @@ MINECRAFT_121111_SHIM_RELOCATIONS = (
 )
 
 
+# NeoForge 26.3 removed the legacy item/fluid/energy handler APIs. BuildCraft keeps
+# its internal slot/tank model on BuildCraft-owned replacements with the same shape;
+# native transfer handlers are only bridged at capability boundaries.
+NEOFORGE_263_LEGACY_STORAGE_RELOCATIONS = (
+    ("net.neoforged.neoforge.items.", "buildcraft.lib.compat.neoforge263.items."),
+    ("net.neoforged.neoforge.energy.", "buildcraft.lib.compat.neoforge263.energy."),
+    ("net.neoforged.neoforge.fluids.capability.", "buildcraft.lib.compat.neoforge263.fluids.capability."),
+    ("net.neoforged.neoforge.fluids.FluidUtil", "buildcraft.lib.compat.neoforge263.fluids.FluidUtil"),
+    ("net.neoforged.neoforge.fluids.IFluidTank", "buildcraft.lib.compat.neoforge263.fluids.IFluidTank"),
+)
+
+
 
 
 def _rewrite_deferred_register_calls(text: str, registry_suffix: str, compat_method: str) -> str:
@@ -363,6 +375,258 @@ def _apply_121111_item_class_compat(text: str) -> str:
 def _apply_121111_eventbus_compat(text: str) -> str:
     # NeoForge 21.11 removed the nested Bus selector from @EventBusSubscriber.
     return re.sub(r",\s*bus\s*=\s*EventBusSubscriber\.Bus\.MOD", "", text)
+
+# 26.3 split net.minecraft.advancements.criterion into triggers and predicates.
+_ADVANCEMENT_263_TRIGGER_TYPES = ("Criterion", "CriterionTrigger", "CriteriaTriggers")
+
+# 26.3 removed the vanilla tool subclasses; tool identity is tag driven.
+_TOOL_CLASS_263_TAGS = (("HoeItem", "HOES"), ("AxeItem", "AXES"), ("ShovelItem", "SHOVELS"))
+
+
+def _rewrite_263_advancement_packages(text: str) -> str:
+    def criterion_member(match: re.Match[str]) -> str:
+        name = match.group(1)
+        is_trigger = name.endswith("Trigger") or name in _ADVANCEMENT_263_TRIGGER_TYPES
+        return f"net.minecraft.advancements.{'triggers' if is_trigger else 'predicates'}.{name}"
+
+    text = re.sub(r"net\.minecraft\.advancements\.criterion\.([A-Za-z0-9_]+)", criterion_member, text)
+    for name in _ADVANCEMENT_263_TRIGGER_TYPES:
+        text = re.sub(
+            r"net\.minecraft\.advancements\." + name + r"(?![A-Za-z0-9_$])",
+            f"net.minecraft.advancements.triggers.{name}",
+            text,
+        )
+    return text
+
+
+def _rewrite_263_tool_classes(text: str) -> str:
+    for class_name, tag in _TOOL_CLASS_263_TAGS:
+        text = re.sub(r"(?m)^[ \t]*import net\.minecraft\.world\.item\." + class_name + r";\n", "", text)
+        # `<expr>.getItem() instanceof HoeItem` -> `<expr>.is(ItemTags.HOES)`
+        text = re.sub(
+            r"\.getItem\(\)\s+instanceof\s+" + class_name + r"(?![A-Za-z0-9_$])",
+            f".is(net.minecraft.tags.ItemTags.{tag})",
+            text,
+        )
+        if re.search(r"(?<![A-Za-z0-9_$.])" + class_name + r"(?![A-Za-z0-9_$])", _strip_java_comments(text)):
+            raise ValueError(f"26.3 removed {class_name}; rewrite this use by hand")
+    return text
+
+
+def _strip_java_comments(text: str) -> str:
+    return re.sub(r"//[^\n]*|/\*.*?\*/", "", text, flags=re.DOTALL)
+
+
+def _rewrite_263_feature_configuration(text: str) -> str:
+    # Feature configurations are plain values since 26.3; the marker interface is gone.
+    text = re.sub(
+        r"(?m)^[ \t]*import net\.minecraft\.world\.level\.levelgen\.feature\.configurations\.FeatureConfiguration;\n",
+        "",
+        text,
+    )
+    return re.sub(r"\)\s*implements\s+FeatureConfiguration\s*\{", ") {", text)
+
+
+def _rewrite_263_entity_actions(text: str) -> str:
+    # swing(hand) gained an animation and the send-to-self flag; the old overload sent to trackers only.
+    text = re.sub(
+        r"(?<![A-Za-z0-9_$.])([a-z][A-Za-z0-9_]*)\.swing\(((?:[A-Za-z0-9_.]+)(?:\(\))?)\);",
+        r"\1.swing(\2, \1.getItemInHand(\2).getInteractAnimation(), false);",
+        text,
+    )
+    # Player.drop(stack, thrown) gained a client-prediction mode; server-side drops are never predicted.
+    # The old three-argument drop(stack, randomly, thrown) lost `randomly`; only `false` maps one to one.
+    text = re.sub(
+        r"(?<![A-Za-z0-9_$.])(player)\.drop\(([^,;]+), false, (true|false)\);",
+        r"\1.drop(\2, \3, net.minecraft.util.Prediction.SERVER_ONLY);",
+        text,
+    )
+    text = re.sub(
+        r"(?<![A-Za-z0-9_$.])(player)\.drop\(([^,;]+), (true|false)\);",
+        r"\1.drop(\2, \3, net.minecraft.util.Prediction.SERVER_ONLY);",
+        text,
+    )
+    # The active swing arm is private swing state since 26.3; vanilla records it when the swing starts.
+    return re.sub(
+        r"(?m)^([ \t]*)[a-z][A-Za-z0-9_]*\.swingingArm = [^;]+;\n",
+        r"\1// 26.3 tracks the swinging arm in the private swing state.\n",
+        text,
+    )
+
+
+# PushReaction constants were renamed in 26.3.
+_PUSH_REACTION_263_RENAMES = (
+    ("NORMAL", "PUSH_PULL"),
+    ("DESTROY", "POPPED"),
+    ("BLOCK", "IMMOVEABLE"),
+    ("PUSH_ONLY", "PUSH"),
+    ("IGNORE", "IGNORE_ENTITY"),
+)
+
+# Block tags that 26.3 only exposes through the shared block/item tag ids.
+_BLOCK_ITEM_TAGS_263 = ("DIAMOND_ORES", "REDSTONE_ORES", "LAPIS_ORES", "COAL_ORES", "EMERALD_ORES")
+
+
+# 26.3 moved the render pipeline API to com.mojang.renderpearl and removed the
+# immediate-mode buffer helpers; BuildCraft keeps them as owned replacements.
+MINECRAFT_263_RENDER_RELOCATIONS = (
+    ("net.minecraft.client.renderer.MultiBufferSource", "buildcraft.lib.compat.mc263.client.renderer.MultiBufferSource"),
+    ("com.mojang.blaze3d.vertex.Tesselator", "buildcraft.lib.compat.mc263.blaze3d.vertex.Tesselator"),
+    ("com.mojang.blaze3d.vertex.VertexFormat", "com.mojang.renderpearl.api.vertex.VertexFormat"),
+    ("com.mojang.blaze3d.pipeline.RenderPipeline", "com.mojang.renderpearl.api.pipeline.RenderPipeline"),
+    ("com.mojang.blaze3d.opengl.GlStateManager", "com.mojang.renderpearl.backend.opengl.GlStateManager"),
+)
+
+
+def _rewrite_263_render_api(text: str) -> str:
+    for before, after in MINECRAFT_263_RENDER_RELOCATIONS:
+        text = re.sub(re.escape(before) + r"(?![A-Za-z0-9_$])", after, text)
+    # Primitive modes are a standalone topology enum since 26.3.
+    text = re.sub(
+        r"(?<![A-Za-z0-9_$.])VertexFormat\.Mode(?![A-Za-z0-9_$])",
+        "com.mojang.renderpearl.api.pipeline.PrimitiveTopology",
+        text,
+    )
+    # The shared level BufferSource is gone; world geometry is recorded and submitted as custom geometry.
+    text = re.sub(
+        r"(?:net\.minecraft\.client\.)?Minecraft\.getInstance\(\)\.renderBuffers\(\)\.bufferSource\(\)",
+        "buildcraft.lib.compat.mc263.client.renderer.MultiBufferSource.world()",
+        text,
+    )
+    text = re.sub(r"\.getMainCamera\(\)", ".mainCamera()", text)
+    if "BakedQuad" in text and "class BakedQuadCompat" not in text:
+        # MaterialInfo swapped the shade flag for a shading direction override and gained glint render types.
+        text = re.sub(
+            r"new (?:BakedQuad\.)?MaterialInfo\(",
+            "buildcraft.lib.compat.mc263.client.BakedQuadCompat.materialInfo(",
+            text,
+        )
+        text = re.sub(
+            r"(?<![A-Za-z0-9_$.])([a-z][A-Za-z0-9_]*(?:\.materialInfo\(\))?)\.shade\(\)",
+            r"buildcraft.lib.compat.mc263.client.BakedQuadCompat.shade(\1)",
+            text,
+        )
+    # PoseStack.mulPose(Quaternionfc) became rotate(Quaternionfc); mulPose(Matrix4fc) is unchanged.
+    return re.sub(r"\.mulPose\(Axis\.", ".rotate(Axis.", text)
+
+
+# 26.3 replaced GLFW with SDL3; key values are SDL scancodes exposed through InputConstants.
+_GLFW_KEYS_263 = {
+    "GLFW_KEY_ENTER": "com.mojang.blaze3d.platform.InputConstants.KEY_RETURN",
+    "GLFW_KEY_KP_ENTER": "com.mojang.blaze3d.platform.InputConstants.KEY_NUMPADENTER",
+    "GLFW_KEY_ESCAPE": "com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE",
+    "GLFW_KEY_EQUAL": "com.mojang.blaze3d.platform.InputConstants.KEY_EQUALS",
+    "GLFW_KEY_KP_ADD": "com.mojang.blaze3d.platform.InputConstants.KEY_ADD",
+    "GLFW_KEY_MINUS": "com.mojang.blaze3d.platform.InputConstants.KEY_MINUS",
+    "GLFW_KEY_KP_SUBTRACT": "org.lwjgl.sdl.SDLScancode.SDL_SCANCODE_KP_MINUS",
+    "GLFW_KEY_M": "com.mojang.blaze3d.platform.InputConstants.KEY_M",
+    "GLFW_KEY_F5": "com.mojang.blaze3d.platform.InputConstants.KEY_F5",
+}
+
+# NeoForge renamed the AbstractContainerScreen getters after the vanilla fields.
+_CONTAINER_SCREEN_GETTERS_263 = (
+    ("getGuiLeft", "getLeftPos"),
+    ("getGuiTop", "getTopPos"),
+    ("getXSize", "getImageWidth"),
+    ("getYSize", "getImageHeight"),
+)
+
+
+def _rewrite_263_client_gui(text: str) -> str:
+    for old, new in _CONTAINER_SCREEN_GETTERS_263:
+        text = re.sub(rf"(\.|::){old}\b", rf"\g<1>{new}", text)
+    if "org.lwjgl.glfw.GLFW" in text:
+        text = re.sub(r"(?m)^[ \t]*import org\.lwjgl\.glfw\.GLFW;\n", "", text)
+        for key, replacement in _GLFW_KEYS_263.items():
+            text = re.sub(r"\bGLFW\." + key + r"(?![A-Za-z0-9_$])", replacement, text)
+        if re.search(r"\bGLFW\b", _strip_java_comments(text)):
+            raise ValueError("26.3 removed GLFW; map the remaining GLFW reference in _GLFW_KEYS_263")
+    # KeyEvent(key, scancode, modifiers) became KeyEvent(key, keycode, modifiers).
+    text = re.sub(r"\bevent\.scancode\(\)", "event.keycode()", text)
+    # The current screen moved from Minecraft to Gui.
+    text = re.sub(
+        r"(?<![A-Za-z0-9_$.])((?:Minecraft\.getInstance\(\)|MC|mc|minecraft))\.screen(?![A-Za-z0-9_$(])(?!\s*=[^=])",
+        r"\1.gui.screen()",
+        text,
+    )
+    text = re.sub(r"\bMinecraft\.getInstance\(\)\.setScreen\(", "Minecraft.getInstance().gui.setScreen(", text)
+    return re.sub(r"\bUtil\.getPlatform\(\)\.openUri\(", "com.mojang.blaze3d.Blaze3D.openUri(", text)
+
+
+def _rewrite_263_misc_api(text: str) -> str:
+    for before, after in _PUSH_REACTION_263_RENAMES:
+        text = re.sub(r"\bPushReaction\." + before + r"(?![A-Za-z0-9_$])", f"PushReaction.{after}", text)
+    for tag in _BLOCK_ITEM_TAGS_263:
+        text = re.sub(
+            r"(?<![A-Za-z0-9_$])BlockTags\." + tag + r"(?![A-Za-z0-9_$])",
+            f"net.minecraft.tags.BlockItemTags.{tag}.block()",
+            text,
+        )
+    text = re.sub(r"(?<![A-Za-z0-9_$.])I18n\.exists\(", "net.minecraft.locale.Language.getInstance().has(", text)
+    # FML 12 renamed config types: COMMON (both sides, unsynced) is LOCAL, SERVER (synced) is SYNCED.
+    if "net.neoforged.fml.config.ModConfig" in text:
+        text = re.sub(r"(?<![A-Za-z0-9_$])Type\.COMMON(?![A-Za-z0-9_$])", "Type.LOCAL", text)
+        text = re.sub(r"(?<![A-Za-z0-9_$])Type\.SERVER(?![A-Za-z0-9_$])", "Type.SYNCED", text)
+    text = re.sub(
+        r"(?<![A-Za-z0-9_$.])([a-z_][A-Za-z0-9_]*)\.blocksMotion\(\)",
+        r"buildcraft.lib.compat.mc263.BlockStateCompat.blocksMotion(\1)",
+        text,
+    )
+    # BlockPos(Vec3i) was removed; only the int constructor remains.
+    text = re.sub(
+        r"\.map\(BlockPos::new\)",
+        ".map(vec -> new BlockPos(vec.getX(), vec.getY(), vec.getZ()))",
+        text,
+    )
+    # Static entity loading takes an EntitySpawnRequest instead of a bare reason.
+    text = re.sub(
+        r"(EntityType\.create\([^;]*?,\s*)(EntitySpawnReason\.[A-Z_]+)(\s*)\)",
+        r"\1new net.minecraft.world.entity.EntitySpawnRequest(\2, false)\3)",
+        text,
+    )
+    # Recipe unlock criteria take a recipe holder, resolved through the datagen RecipeOutput registry lookup.
+    text = re.sub(
+        r"RecipeUnlockedTrigger\.unlocked\(([a-z][A-Za-z0-9_]*)\)",
+        r"RecipeUnlockedTrigger.unlocked(output.lookup(net.minecraft.core.registries.Registries.RECIPE).getOrThrow(\1))",
+        text,
+    )
+    if "import net.minecraft.ChatFormatting;" in text:
+        # ChatFormatting lost its colour id table and isColor(); BuildCraft keeps them in a helper.
+        text = re.sub(
+            r"(?<![A-Za-z0-9_$.])ChatFormatting\.getById\(",
+            "buildcraft.lib.compat.mc263.ChatFormattingCompat.getById(",
+            text,
+        )
+        text = re.sub(
+            r"(?<![A-Za-z0-9_$.])([a-z][A-Za-z0-9_]*)\.isColor\(\)",
+            r"buildcraft.lib.compat.mc263.ChatFormattingCompat.isColor(\1)",
+            text,
+        )
+    return text
+
+
+def upgrade_263_symbols(text: str, *, minecraft: str, relative: str) -> str:
+    """Apply mechanical Minecraft/NeoForge 26.3 API renames.
+
+    Unlike ``upgrade_symbols`` this also applies to whole-file source variants: a
+    variant native to an older Minecraft API (e.g. ``>=1.21.11``) is still selected
+    on 26.3, where the removed packages no longer exist at all.
+    """
+    if not relative.endswith(".java") or _version_tuple(minecraft) < _version_tuple("26.3"):
+        return text
+    for before, after in NEOFORGE_263_LEGACY_STORAGE_RELOCATIONS:
+        text = text.replace(before, after)
+    text = _rewrite_263_advancement_packages(text)
+    text = _rewrite_263_entity_actions(text)
+    text = _rewrite_263_misc_api(text)
+    text = _rewrite_263_render_api(text)
+    try:
+        text = _rewrite_263_client_gui(text)
+        text = _rewrite_263_tool_classes(text)
+    except ValueError as error:
+        raise ValueError(f"{relative}: {error}") from error
+    return _rewrite_263_feature_configuration(text)
+
 
 def upgrade_symbols(text: str, *, minecraft: str, relative: str) -> str:
     """Apply tiny official-name compatibility renames after Stonecutter preprocessing.

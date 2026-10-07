@@ -9,10 +9,10 @@
     ]
   },
   "limits": {
-    "conditions.files": 214,
-    "conditions.blocks": 407,
+    "conditions.files": 221,
+    "conditions.blocks": 419,
     "downports.java_total": 115,
-    "platform.java_total": 1385,
+    "platform.java_total": 1398,
     "platform.loader_neutral_count": 0,
     "platform.gameplay_override_count": 123,
     "transforms.class_specific_java_rewrites": 0,
@@ -26,6 +26,8 @@
     "/targets/1.21.11-neoforge/java": 1,
     "/targets/1.21.11-neoforge/resources": 0,
     "/targets/26.1.2-neoforge/java": 0,
-    "/targets/26.1.2-neoforge/resources": 0
+    "/targets/26.1.2-neoforge/resources": 0,
+    "/targets/26.3-neoforge/java": 0,
+    "/targets/26.3-neoforge/resources": 0
   }
 }
