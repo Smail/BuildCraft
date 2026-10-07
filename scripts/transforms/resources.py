@@ -101,7 +101,7 @@ def _dynamic_fluid_bucket_client_item_121111(fluid: str, *, minecraft: str) -> s
     # leave grey side-face fragments around the bucket in GUI item rendering.
     # The fluid mask already limits the liquid to the bucket opening, so the
     # extra cover pass is unnecessary there. Keep the 1.21.11 definition
-    # unchanged and omit only the cover layer on 26.1.2.
+    # unchanged and omit the cover layer from 26.1 onwards (26.3 included).
     textures = {
         "particle": "minecraft:item/bucket",
         "base": "minecraft:item/bucket",
@@ -114,7 +114,7 @@ def _dynamic_fluid_bucket_client_item_121111(fluid: str, *, minecraft: str) -> s
         "flip_gas": True,
         "apply_fluid_luminosity": False,
     }
-    if _version_tuple(minecraft) != _version_tuple("26.1.2"):
+    if _version_tuple(minecraft) < _version_tuple("26.1"):
         textures["cover"] = "neoforge:item/mask/bucket_fluid_cover"
         model["cover_is_mask"] = True
     return json.dumps({"model": model}, indent=2, ensure_ascii=False) + "\n"
