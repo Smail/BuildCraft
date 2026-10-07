@@ -64,6 +64,7 @@ import buildcraft.energy.menu.ContainerEngineIron_BC8;
 import buildcraft.energy.tile.TileDynamoMJ;
 import buildcraft.energy.tile.TileEngineFE;
 import buildcraft.energy.tile.TileEngineIron_BC8;
+import buildcraft.energy.tile.TileEngineStone_BC8;
 import buildcraft.factory.BCFactoryBlocks;
 import buildcraft.factory.tile.TilePump;
 import buildcraft.lib.BCLibConfig;
@@ -933,6 +934,36 @@ public final class BuildCraftLogicGameTests {
     }
 
     @GameTest(templateNamespace = BCLib.MODID, template = EMPTY_TEMPLATE, timeoutTicks = 20)
+    public static void stirlingEngineBurnsFuelWithoutCraftingRemainder(GameTestHelper helper) {
+        TileEngineStone_BC8 engine = placeStirlingEngine(helper, new BlockPos(1, 1, 1));
+        engine.invFuel.setStackInSlot(0, new ItemStack(Items.COAL));
+        engine.isRedstonePowered = true;
+
+        engine.burn();
+
+        require(helper, (Integer) readField(engine, "burnTime") > 0,
+            "stirling engine did not start burning coal");
+        require(helper, engine.invFuel.getStackInSlot(0).isEmpty(),
+            "stirling engine left an item behind after burning coal");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = BCLib.MODID, template = EMPTY_TEMPLATE, timeoutTicks = 20)
+    public static void stirlingEngineReturnsEmptyBucketAfterBurningLava(GameTestHelper helper) {
+        TileEngineStone_BC8 engine = placeStirlingEngine(helper, new BlockPos(1, 1, 1));
+        engine.invFuel.setStackInSlot(0, new ItemStack(Items.LAVA_BUCKET));
+        engine.isRedstonePowered = true;
+
+        engine.burn();
+
+        require(helper, (Integer) readField(engine, "burnTime") > 0,
+            "stirling engine did not start burning a lava bucket");
+        require(helper, engine.invFuel.getStackInSlot(0).is(Items.BUCKET),
+            "stirling engine did not return the empty bucket after burning lava");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = BCLib.MODID, template = EMPTY_TEMPLATE, timeoutTicks = 20)
     public static void quarryCancelledTaskRefundsExactWithdrawnPower(GameTestHelper helper) {
         TileQuarry quarry = placeQuarry(helper, new BlockPos(1, 1, 1));
         MjBattery battery = (MjBattery) readField(quarry, "battery");
@@ -959,6 +990,18 @@ public final class BuildCraftLogicGameTests {
         if (!(blockEntity instanceof TileEngineIron_BC8 engine)) {
             helper.fail("combustion engine block did not create TileEngineIron_BC8");
             throw new IllegalStateException("missing TileEngineIron_BC8");
+        }
+        return engine;
+    }
+
+    private static TileEngineStone_BC8 placeStirlingEngine(GameTestHelper helper, BlockPos relativePos) {
+        BlockState state = BCCoreBlocks.ENGINE_BC8.get().defaultBlockState()
+            .setValue(BuildCraftProperties.ENGINE_TYPE, EnumEngineType.STONE);
+        helper.setBlock(relativePos, state);
+        BlockEntity blockEntity = helper.getBlockEntity(relativePos);
+        if (!(blockEntity instanceof TileEngineStone_BC8 engine)) {
+            helper.fail("stirling engine block did not create TileEngineStone_BC8");
+            throw new IllegalStateException("missing TileEngineStone_BC8");
         }
         return engine;
     }
