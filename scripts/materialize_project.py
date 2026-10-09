@@ -34,8 +34,9 @@ DATAGEN_DISABLED_SOURCES = (
     "src/main/java/buildcraft/core/client/model/ModelEngine.java",
 )
 
-# Written against the native RecipeProvider API from 26.3 on and referenced unconditionally by BCSilicon/BCFactory.
-NATIVE_RECIPE_PROVIDERS_SINCE_26_3 = (
+# Kept in the compile when a target sets compile.datagen.native_recipe_providers=true: they are written against the
+# native RecipeProvider API and referenced unconditionally by BCSilicon/BCFactory.
+NATIVE_RECIPE_PROVIDERS = (
     "src/main/java/buildcraft/silicon/BCSiliconRecipesProvider.java",
     "src/main/java/buildcraft/factory/BCFactoryRecipesProvider.java",
 )
@@ -180,9 +181,8 @@ def _apply_compile_exclusions(project_root: Path, properties: dict[str, str], ta
 
     if not _bool_property(properties, target, "compile.datagen.enabled", True):
         disabled = list(DATAGEN_DISABLED_SOURCES)
-        minecraft = tuple(int(part) for part in _target_property(properties, target, "deps.minecraft").split("."))
-        if minecraft < (26, 3):
-            disabled.extend(NATIVE_RECIPE_PROVIDERS_SINCE_26_3)
+        if not _bool_property(properties, target, "compile.datagen.native_recipe_providers", False):
+            disabled.extend(NATIVE_RECIPE_PROVIDERS)
         for relative in disabled:
             (project_root / relative).unlink(missing_ok=True)
 
