@@ -84,6 +84,10 @@ public class RenderPipeHolder implements BlockEntityRenderer<TilePipeHolder, Ren
         public VertexConsumer setLineWidth(float width) {
             return this;
         }
+
+        public VertexConsumer setUv3(float u, float v) {
+            return this;
+        }
     };
     public static final Direction[] renderFacing = {
         Direction.UP, Direction.NORTH, Direction.WEST, Direction.SOUTH, Direction.EAST, Direction.DOWN

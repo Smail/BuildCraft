@@ -117,7 +117,12 @@ public final class ModelPipeItem implements ItemModel {
         }
         RenderType renderType = type == EnumPipeColourType.TRANSLUCENT
             ? Sheets.translucentBlockItemSheet()
+            //? if >=26.3 {
+            // 26.3 dropped the entity-style block sheet; item layers use the item cutout sheet.
+            : Sheets.cutoutBlockItemSheet();
+            //?} else {
             : Sheets.cutoutBlockSheet();
+            //?}
         return new CompositeModel(List.of(baseModel,
             NativeItemModelBuilder.layer(overlay, ModelItemSimple.TRANSFORM_BLOCK, renderType, true)));
     }

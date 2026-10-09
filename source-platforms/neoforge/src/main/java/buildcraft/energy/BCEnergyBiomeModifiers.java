@@ -39,7 +39,11 @@ public final class BCEnergyBiomeModifiers {
 
     public record OilFeatureInjectionModifier(HolderSet<PlacedFeature> features) implements BiomeModifier {
         @Override
+        //? if >=26.3 {
+        public void modify(net.minecraft.core.RegistryAccess registries, Holder<Biome> biome, Phase phase, BiomeInfo.Builder builder) {
+        //?} else {
         public void modify(Holder<Biome> biome, Phase phase, BiomeInfo.Builder builder) {
+        //?}
             if (phase != Phase.ADD) {
                 return;
             }

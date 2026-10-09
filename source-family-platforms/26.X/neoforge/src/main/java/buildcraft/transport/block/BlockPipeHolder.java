@@ -812,7 +812,11 @@ public class BlockPipeHolder extends BlockBCTile_Neptune implements ICustomPaint
 		
 		if (world.isClientSide()) {
 //			return super.onDestroyedByPlayer(state, world, pos, player, toolStack, willHarvest, fluid);
+			//? if >=26.3 {
+			this.spawnDestroyParticles(world, pos, state);
+			//?} else {
 			this.spawnDestroyParticles(world, player, pos, state);
+			//?}
 			if(side == null && part == null && between ==null ) {
 				
 				world.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(player, state));
@@ -906,11 +910,6 @@ public class BlockPipeHolder extends BlockBCTile_Neptune implements ICustomPaint
 		if (pipe != Pipe.EMPTY) {
 			pipe.getBehaviour().onEntityCollide(entity);
 		}
-	}
-
-	public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, BlockEntity be,
-			ItemStack stack) {
-		super.playerDestroy(world, player, pos, state, be, stack);
 	}
 
 	public boolean canBeConnectedTo(BlockGetter world, BlockPos pos, Direction facing) {
