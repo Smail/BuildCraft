@@ -33,6 +33,7 @@
         }
     },
     "textures": {
+        "particle":"buildcrafttransport:pipes/power_adapter",
         "all":"buildcrafttransport:pipes/power_adapter"
     },
     "shade": true,

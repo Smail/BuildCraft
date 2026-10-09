@@ -14,7 +14,6 @@ import buildcraft.lib.recipe.AssemblyRecipeBasic;
 import buildcraft.silicon.recipe.FacadeAssemblyRecipes;
 import buildcraft.silicon.recipe.FacadeSwapRecipe;
 import buildcraft.silicon.recipe.GateLogicChangeRecipe;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 
@@ -25,7 +24,10 @@ public final class BCSiliconRecipes {
         BCDeferredRegister.create("minecraft:recipe_serializer", BCSilicon.MODID);
 
     public static final BCRegistryEntry<RecipeType<AssemblyRecipeBasic>> ASSEMBLY_TYPE = TYPES.register(
-        "assembly", () -> RecipeType.simple(Identifier.fromNamespaceAndPath(BCSilicon.MODID, "assembly")));
+        "assembly", () -> new RecipeType<AssemblyRecipeBasic>() {
+            @Override
+            public String toString() { return BCSilicon.MODID + ":assembly"; }
+        });
     public static final BCRegistryEntry<RecipeSerializer<AssemblyRecipe>> ASSEMBLY_SERIALIZER =
         SERIALIZERS.register("assembly", () -> AssemblyRecipe.SERIALIZER);
     public static final BCRegistryEntry<RecipeSerializer<GateLogicChangeRecipe>> GATE_CHANGE_SERIALIZER =

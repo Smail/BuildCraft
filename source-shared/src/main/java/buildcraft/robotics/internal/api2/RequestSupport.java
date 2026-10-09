@@ -27,7 +27,7 @@ public final class RequestSupport {
         try {
             int slot = Integer.parseInt(id.getPath().substring(SLOT_PREFIX.length()));
             return slot < 0 ? OptionalInt.empty() : OptionalInt.of(slot);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) { buildcraft.lib.internal.debug.BCLog.caught("RequestSupport.slot", ignored);
             return OptionalInt.empty();
         }
     }

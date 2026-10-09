@@ -64,6 +64,8 @@ public class Tank implements IFluidHandlerAdv, IFluidHandler, IFluidTank {
         if (!buildcraft.lib.compat.transfer.TransferJournal.active()) onContentsChanged();
     }
 
+    public buildcraft.lib.compat.transfer.TransferJournal<?> transferJournal() { return transferJournal; }
+
     public static final String DEFAULT_HELP_KEY = "buildcraft.help.tank.generic";
 
     public int colorRenderCache = 0xFFFFFF;

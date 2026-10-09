@@ -247,7 +247,7 @@ public class ScreenReplacer extends AbstractContainerScreen<MenuReplacer> {
             return matches > 0
                 ? new StatusLine(Component.translatable("gui.buildcraftbuilders.replacer.status.ready", matches), OK_COLOUR)
                 : new StatusLine(Component.translatable("gui.buildcraftbuilders.replacer.status.no_match"), ERROR_COLOUR);
-        } catch (InvalidInputDataException e) {
+        } catch (InvalidInputDataException e) { buildcraft.lib.internal.debug.BCLog.caught("ScreenReplacer.getReplacementStatus", e);
             return new StatusLine(Component.translatable("gui.buildcraftbuilders.replacer.status.invalid_schematic"), ERROR_COLOUR);
         }
     }
@@ -273,7 +273,7 @@ public class ScreenReplacer extends AbstractContainerScreen<MenuReplacer> {
                 if (!requiredItems.isEmpty() && !requiredItems.get(0).isEmpty()) {
                     stacks.add(requiredItems.get(0).copy());
                 }
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("ScreenReplacer.getPreviewStacks", ignored);
                 // A broken schematic must not crash the GUI preview. The builder/replacer logic still validates it server-side.
             }
         }

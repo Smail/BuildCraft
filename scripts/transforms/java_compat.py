@@ -481,6 +481,7 @@ _BLOCK_ITEM_TAGS_263 = ("DIAMOND_ORES", "REDSTONE_ORES", "LAPIS_ORES", "COAL_ORE
 # 26.3 moved the render pipeline API to com.mojang.renderpearl and removed the
 # immediate-mode buffer helpers; BuildCraft keeps them as owned replacements.
 MINECRAFT_263_RENDER_RELOCATIONS = (
+    ("net.minecraft.client.renderer.state.CameraRenderState", "net.minecraft.client.renderer.state.level.CameraRenderState"),
     ("net.minecraft.client.renderer.MultiBufferSource", "buildcraft.lib.compat.mc263.client.renderer.MultiBufferSource"),
     ("com.mojang.blaze3d.vertex.Tesselator", "buildcraft.lib.compat.mc263.blaze3d.vertex.Tesselator"),
     ("com.mojang.blaze3d.vertex.VertexFormat", "com.mojang.renderpearl.api.vertex.VertexFormat"),
@@ -544,6 +545,10 @@ _CONTAINER_SCREEN_GETTERS_263 = (
 
 
 def _rewrite_263_client_gui(text: str) -> str:
+    if "GuiGraphicsExtractor" in text:
+        for old, new in (("drawString", "text"), ("renderItemDecorations", "itemDecorations"), ("renderItem", "item")):
+            text = re.sub(r"\bguiGraphics\." + old + r"\(", "guiGraphics." + new + "(", text)
+    text = re.sub(r"new (net\.minecraft\.client\.input\.)?CharacterEvent\(codePoint, modifiers\)", r"new \1CharacterEvent(codePoint)", text)
     for old, new in _CONTAINER_SCREEN_GETTERS_263:
         text = re.sub(rf"(\.|::){old}\b", rf"\g<1>{new}", text)
     if "org.lwjgl.glfw.GLFW" in text:
@@ -625,6 +630,25 @@ def upgrade_263_symbols(text: str, *, minecraft: str, relative: str) -> str:
     """
     if not relative.endswith(".java") or _version_tuple(minecraft) < _version_tuple("26.3"):
         return text
+    for before, after in (
+        ("ClickType", "ContainerInput"),
+        ("DimensionDataStorage", "SavedDataStorage"),
+        ("LightTexture", "LightCoordsUtil"),
+        ("GuiGraphics", "GuiGraphicsExtractor"),
+    ):
+        if re.search(r"import net\.minecraft\.[\w.]+\." + before + r";", text):
+            text = re.sub(r"\b" + before + r"\b", after, text)
+    text = text.replace("net.minecraft.client.renderer.LightCoordsUtil", "net.minecraft.util.LightCoordsUtil")
+    # ChunkPos became a record. Only rewrite receivers declared with that type.
+    chunk_receivers = set(re.findall(r"\bChunkPos\s+([A-Za-z_$][\w$]*)", text))
+    # Imported aggregate fields and inferred lambda parameters use the same conventional name.
+    chunk_receivers.add("chunkPos")
+    for receiver in chunk_receivers:
+        text = re.sub(r"\b" + re.escape(receiver) + r"\.(x|z)\b(?!\s*\()", r"" + receiver + r".\1()", text)
+    block_receivers = set(re.findall(r"\bBlockPos\s+([A-Za-z_$][\w$]*)", text))
+    for receiver in block_receivers:
+        text = re.sub(r"new ChunkPos\(" + re.escape(receiver) + r"\)", "ChunkPos.containing(" + receiver + ")", text)
+    text = re.sub(r"new ChunkPos\(([\w.]+\.getBlockPos\(\))\)", r"ChunkPos.containing(\1)", text)
     for before, after in NEOFORGE_263_LEGACY_STORAGE_RELOCATIONS:
         text = text.replace(before, after)
     text = _rewrite_263_advancement_packages(text)
@@ -744,8 +768,12 @@ def upgrade_symbols(text: str, *, minecraft: str, relative: str) -> str:
     for before, after in replacements:
         if is_render_compat_impl and before.startswith("RenderTypes.") and after.startswith("RenderCompat."):
             continue
-        text = text.replace(before, after)
-    shim_namespace = SHIM_NAMESPACE_26_1_2 if _version_tuple(minecraft) >= _version_tuple("26.1.2") else SHIM_NAMESPACE_1_21_11
+        if before.startswith("RenderTypes."):
+            # Do not rewrite the tail of wrapper names such as BCRenderTypes.
+            text = re.sub(r"(?<![\w$])" + re.escape(before), lambda _m, a=after: a, text)
+        else:
+            text = text.replace(before, after)
+    shim_namespace =SHIM_NAMESPACE_26_1_2 if _version_tuple(minecraft) >= _version_tuple("26.1.2") else SHIM_NAMESPACE_1_21_11
     if shim_namespace == SHIM_NAMESPACE_26_1_2:
         text = text.replace("buildcraft.lib.compat.mc121111", "buildcraft.lib.compat.mc2612")
         text = text.replace("buildcraft.lib.compat.neoforge121111", "buildcraft.lib.compat.neoforge2612")

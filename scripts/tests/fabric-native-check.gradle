@@ -1,0 +1,45 @@
+// Run from builds/26.X with --init-script ../../scripts/tests/fabric-native-check.gradle.
+// Isolated native checks use the target's resolved dependencies without compiling gameplay.
+gradle.projectsEvaluated {
+    def fabric = gradle.rootProject.findProject(':26.3-fabric')
+    if (fabric == null) throw new GradleException('26.3-fabric target not found')
+    def repo = new File(fabric.rootProject.projectDir, '../..').canonicalFile
+    def nativeRoot = new File(repo, 'source-family-platforms/26.X/fabric/src/main/java')
+    def familyRoot = new File(repo, 'source-families/26.X/src/main/java')
+    def sharedRoot = new File(repo, 'source-shared/src/main/java')
+    def nativeCheck = fabric.tasks.register('agent2NativeCheck', JavaCompile) {
+        source fabric.fileTree(nativeRoot) {
+            include 'buildcraft/BuildCraftFabric.java'
+            include 'buildcraft/lib/internal/module/**'
+            include 'buildcraft/lib/platform/registry/**'
+            include 'buildcraft/lib/platform/config/ConfigBinding.java'
+            include 'buildcraft/lib/platform/events/PlatformEvents.java'
+            include 'buildcraft/lib/platform/events/mixin/**'
+            include 'buildcraft/lib/recipe/**'
+            include 'buildcraft/energy/BCEnergyBiomeModifiers.java'
+        }
+        source fabric.fileTree(familyRoot) {
+            include 'buildcraft/lib/platform/registry/BC*.java'
+            include 'buildcraft/lib/platform/registry/RegistryNames.java'
+            include 'buildcraft/lib/platform/config/BCConfigSpec.java'
+            include 'buildcraft/lib/platform/events/BCEvents.java'
+            include 'buildcraft/lib/net/BCNetworkSide.java'
+            include 'buildcraft/lib/compat/NbtCompat.java'
+        }
+        source new File(sharedRoot, 'buildcraft/lib/internal/module/IBuildCraftMod.java')
+        source new File(repo, 'scripts/tests/java/FabricConfigProbe.java')
+        source new File(repo, 'scripts/tests/java/FabricEventsProbe.java')
+        classpath = fabric.sourceSets.main.compileClasspath
+        destinationDirectory.set(fabric.layout.buildDirectory.dir('agent2-native-check/classes'))
+        javaCompiler.set(fabric.javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+        options.compilerArgs.add('-proc:none')
+    }
+    ['Config', 'Events'].each { probe ->
+        fabric.tasks.register("agent2${probe}Probe", JavaExec) {
+            dependsOn nativeCheck
+            classpath = fabric.files(nativeCheck.flatMap { it.destinationDirectory }) + fabric.sourceSets.main.compileClasspath
+            mainClass.set("probe.Fabric${probe}Probe")
+            javaLauncher.set(fabric.javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+        }
+    }
+}

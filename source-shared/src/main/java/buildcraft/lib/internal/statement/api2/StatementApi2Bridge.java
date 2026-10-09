@@ -235,7 +235,7 @@ public final class StatementApi2Bridge {
             try {
                 CompoundTag tag = TagParser.parseTag(new String(data.bytes(), StandardCharsets.UTF_8));
                 return StatementTypeParam.INSTANCE.readFromNbt(tag);
-            } catch (CommandSyntaxException | RuntimeException ignored) {
+            } catch (CommandSyntaxException | RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("StatementApi2Bridge.fromApiValue", ignored);
                 return null;
             }
         }
@@ -326,7 +326,7 @@ public final class StatementApi2Bridge {
     }
 
     private static ResourceLocation parse(String id) {
-        try { return ResourceLocation.tryParse(id); } catch (RuntimeException ignored) { return null; }
+        try { return ResourceLocation.tryParse(id); } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("StatementApi2Bridge.parse", ignored); return null; }
     }
 
     private static ResourceLocation id(String path) {

@@ -141,7 +141,7 @@ public final class ItemStackUtil {
             if (!parsed.isEmpty()) {
                 return parsed;
             }
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("ItemStackUtil.parseOptional", ignored);
             // Fall through to the conservative reader. It deliberately retains the
             // legacy tag as custom data instead of causing the whole block entity to fail.
         }

@@ -167,6 +167,9 @@ def _buildcraftenergy_bucket_item_path_1_21_11(normalized: str, marker: str) -> 
     if marker not in normalized or not normalized.endswith(".json"):
         return None
     item_path = normalized.split(marker, 1)[1].removesuffix(".json")
+    if item_path.startswith("fabric/"):
+        # The Fabric platform ships its own static bucket models under item/fabric/.
+        return None
     return item_path if "/" in item_path and item_path.endswith("_bucket") else None
 
 
@@ -321,7 +324,8 @@ def _apply_1_21_11_resource_compat(text: str, *, minecraft: str, relative: str) 
     if normalized.endswith(".json") and "/recipe/" in normalized and "/data/" in normalized:
         text = _rewrite_1_21_11_recipe_json(text, normalized)
 
-    if _is_1_21_11_buildcraftenergy_bucket_client_item(normalized):
+    # Hand-authored plain model definitions (Fabric has no fluid_container model type) pass through.
+    if _is_1_21_11_buildcraftenergy_bucket_client_item(normalized) and '"minecraft:model"' not in text:
         return _buildcraftenergy_bucket_client_item_1_21_11(normalized, minecraft=minecraft)
 
     if _is_1_21_11_buildcraftenergy_bucket_item_model(normalized):

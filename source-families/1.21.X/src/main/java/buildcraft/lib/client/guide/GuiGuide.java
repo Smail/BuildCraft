@@ -210,7 +210,7 @@ public final class GuiGuide extends Screen {
         this.showHints = initialState.showHints;
         try {
             this.sortMode = SortMode.valueOf(initialState.sortMode);
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.GuiGuide", ignored);
             this.sortMode = SortMode.TYPE;
         }
         content = GuideContent.load();
@@ -1112,7 +1112,7 @@ public final class GuiGuide extends Screen {
         if (target.startsWith("http://") || target.startsWith("https://")) {
             try {
                 Util.getPlatform().openUri(new URI(target));
-            } catch (Exception ignored) {
+            } catch (Exception ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.followTarget", ignored);
             }
             return;
         }
@@ -1413,7 +1413,7 @@ public final class GuiGuide extends Screen {
                 Item item = BuiltInRegistries.ITEM.get(location).map(net.minecraft.core.Holder.Reference::value).orElse(net.minecraft.world.item.Items.AIR);
                 if (item != null) return item.getDefaultInstance();
             }
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.imageStack", ignored);
         }
         return ItemStack.EMPTY;
     }
@@ -1430,7 +1430,7 @@ public final class GuiGuide extends Screen {
     private Identifier textureLocation(String source) {
         try {
             return Identifier.parse(source);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.textureLocation", ignored);
             return null;
         }
     }
@@ -1496,7 +1496,7 @@ public final class GuiGuide extends Screen {
                 }
             }
             return outputs;
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.recipeOutputs", ignored);
             return List.of();
         }
     }
@@ -1514,7 +1514,7 @@ public final class GuiGuide extends Screen {
                     if (guideStacksMatch(input, candidate)) return true;
                 }
             }
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.recipeUses", ignored);
             // Dynamic/tag-backed displays may fail while registries are being replaced during a resource reload.
         }
         return false;
@@ -1545,7 +1545,7 @@ public final class GuiGuide extends Screen {
         ItemStack focus = requestedOutput == null ? ItemStack.EMPTY : requestedOutput;
         try {
             renderCraftingRecipe(guiGraphics, entry, focus, x, y, mouseX, mouseY);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.renderRecipe", ignored);
             // A broken third-party display must not close the whole guide.
         }
     }
@@ -1595,7 +1595,7 @@ public final class GuiGuide extends Screen {
             if (stacks.isEmpty()) return ItemStack.EMPTY;
             ItemStack stack = stacks.get(Math.floorMod(tick / 30 + offset, stacks.size()));
             return stack == null ? ItemStack.EMPTY : stack.copy();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.slotDisplayStack", ignored);
             return ItemStack.EMPTY;
         }
     }
@@ -1925,7 +1925,7 @@ public final class GuiGuide extends Screen {
         if (value == null) return fallback;
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.parseInt", ignored);
             return fallback;
         }
     }

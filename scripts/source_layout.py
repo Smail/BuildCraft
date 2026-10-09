@@ -101,7 +101,7 @@ def _materialize_text_file(
             source=str(source_path.relative_to(ROOT)),
         )
         text = apply_text_transforms(
-            text, minecraft=minecraft, relative=logical_relative, native_source=native_source
+            text, minecraft=minecraft, relative=logical_relative, native_source=native_source, platform=platform
         )
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text, encoding="utf-8", newline="")
@@ -121,7 +121,7 @@ def _materialize_text_file(
             _copy_source(source_path, output)
             return
         text = apply_text_transforms(
-            text, minecraft=minecraft, relative=logical_relative, native_source=native_source
+            text, minecraft=minecraft, relative=logical_relative, native_source=native_source, platform=platform
         )
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(text, encoding="utf-8", newline="")

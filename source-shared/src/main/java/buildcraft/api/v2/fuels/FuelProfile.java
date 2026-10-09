@@ -28,7 +28,7 @@ public final class FuelProfile implements EnergyFluidDefinition {
                 return CodecResult.success(new FuelProfile(
                     selector.valueOrThrow(), data.powerPerTickMicroMj(), data.burnTicksPerBucket(), residue
                 ));
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("FuelProfile.decode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }

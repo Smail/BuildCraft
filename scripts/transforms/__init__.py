@@ -5,13 +5,14 @@ from pathlib import Path
 
 from .java_compat import upgrade_263_symbols, upgrade_symbols
 from .gametest import generate_gametest_registry, transform_gametest_source
+from .fabric import upgrade_fabric_symbols
 from .java_symbols import downport_symbols
 from .lib_symbols import upgrade_lib_symbols
 from .resources import apply_resource_transforms, generate_target_resources
 
 
 def apply_text_transforms(
-    text: str, *, minecraft: str, relative: str, native_source: bool = False
+    text: str, *, minecraft: str, relative: str, native_source: bool = False, platform: str = "neoforge"
 ) -> str:
     # Whole-file source variants are maintained directly against the selected
     # Minecraft API and therefore bypass mechanical upgrade transforms.
@@ -23,6 +24,7 @@ def apply_text_transforms(
         text = downport_symbols(text, minecraft=minecraft, relative=relative)
     text = upgrade_lib_symbols(text, minecraft=minecraft, relative=relative)
     text = upgrade_263_symbols(text, minecraft=minecraft, relative=relative)
+    text = upgrade_fabric_symbols(text, platform=platform, relative=relative)
     text = transform_gametest_source(text, minecraft=minecraft, relative=relative)
     return apply_resource_transforms(text, minecraft=minecraft, relative=relative)
 

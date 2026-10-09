@@ -1,0 +1,94 @@
+// Run from builds/26.X with --init-script ../../scripts/tests/fabric-agent3-check.gradle.
+// Isolated probes compile native bindings without claiming the gameplay port is complete.
+gradle.projectsEvaluated {
+    def fabric = gradle.rootProject.findProject(':26.3-fabric')
+    if (fabric == null) throw new GradleException('26.3-fabric target not found')
+    def repo = new File(fabric.rootProject.projectDir, '../..').canonicalFile
+    def nativeRoot = new File(repo, 'source-family-platforms/26.X/fabric/src/main/java')
+    def testsRoot = new File(repo, 'source-family-platforms/26.X/fabric/src/test/java')
+    def familyRoot = new File(repo, 'source-families/26.X/src/main/java')
+    def energy = fabric.configurations.detachedConfiguration(fabric.dependencies.create('teamreborn:energy:5.0.0'))
+    energy.transitive = false
+    def nativeCheck = fabric.tasks.register('agent3NativeCheck', JavaCompile) {
+        dependsOn fabric.tasks.named('compileApiV2Java'), fabric.tasks.named('generateBuildCraftTarget')
+        source fabric.fileTree(nativeRoot) {
+            include 'buildcraft/lib/platform/storage/**'
+            include 'buildcraft/lib/platform/capability/**'
+            include 'buildcraft/lib/platform/chunk/**'
+            include 'buildcraft/lib/platform/actor/**'
+            include 'buildcraft/lib/platform/permission/**'
+            include 'buildcraft/lib/compat/transfer/TransferJournal.java'
+            include 'buildcraft/lib/inventory/FabricItemTransactor.java'
+            include 'buildcraft/lib/fluid/**'
+            include 'buildcraft/lib/fake/**'
+            include 'buildcraft/lib/net/**'
+            include 'buildcraft/lib/internal/mj/**'
+            include 'buildcraft/lib/internal/api/v2/platform/FabricPlatformServices.java'
+        }
+        source fabric.fileTree(familyRoot) {
+            include 'buildcraft/lib/platform/storage/ItemStorage.java'
+            include 'buildcraft/lib/platform/storage/EnergyStorage.java'
+            include 'buildcraft/lib/platform/storage/FluidStorage.java'
+            include 'buildcraft/lib/platform/storage/FilteredFluidStorage.java'
+            include 'buildcraft/lib/platform/chunk/BCTicketOwners.java'
+            include 'buildcraft/lib/internal/core/IStackFilter.java'
+            include 'buildcraft/lib/internal/inventory/IItemTransactor.java'
+            include 'buildcraft/lib/internal/tiles/IHasWork.java'
+            include 'buildcraft/lib/internal/data/NbtSquishConstants.java'
+            include 'buildcraft/lib/internal/api/v2/energy/MjRuntimeLookup.java'
+            include 'buildcraft/lib/net/BCPacketContext.java'
+            include 'buildcraft/lib/net/BCNetworkSide.java'
+            include 'buildcraft/lib/net/NetworkSecurity.java'
+        }
+        source new File(repo, 'source-shared/src/main/java/buildcraft/lib/internal/module/IBuildCraftMod.java')
+        source fabric.layout.buildDirectory.dir('generated/sources/buildcraftTarget/java')
+        source fabric.fileTree(testsRoot) {
+            include 'buildcraft/lib/platform/storage/**'
+            include 'buildcraft/lib/platform/chunk/**'
+            include 'buildcraft/lib/fluid/**'
+            include 'buildcraft/lib/internal/mj/**'
+            include 'buildcraft/lib/net/**'
+        }
+        source new File(repo, 'scripts/tests/java/Agent3NativeProbeEntrypoint.java')
+        classpath = fabric.sourceSets.apiV2.output + fabric.sourceSets.main.compileClasspath + energy
+        destinationDirectory.set(fabric.layout.buildDirectory.dir('agent3-native-check/classes'))
+        javaCompiler.set(fabric.javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+        options.compilerArgs.add('-proc:none')
+    }
+    def probes = [
+        agent3TransactionProbe: 'buildcraft.lib.platform.storage.FabricTransferOperationsProbe',
+        agent3EnergyProbe: 'buildcraft.lib.platform.storage.FabricEnergyExportProbe',
+        agent3NetworkProbe: 'buildcraft.lib.net.FabricNetworkProbe',
+        agent3TicketProbe: 'buildcraft.lib.platform.chunk.FabricTicketLedgerProbe',
+        agent3MjProbe: 'buildcraft.lib.internal.mj.FabricMjProbe'
+    ]
+    probes.each { name, entrypoint ->
+        fabric.tasks.register(name, JavaExec) {
+            dependsOn nativeCheck
+            classpath = fabric.files(nativeCheck.flatMap { it.destinationDirectory }) +
+                fabric.sourceSets.apiV2.output + fabric.sourceSets.main.compileClasspath + energy
+            mainClass.set(entrypoint)
+            javaLauncher.set(fabric.javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+            workingDir fabric.layout.buildDirectory.dir('agent3-native-check').get().asFile
+        }
+    }
+    fabric.tasks.register('agent3FluidProbe', JavaExec) {
+        dependsOn nativeCheck
+        classpath = fabric.files(nativeCheck.flatMap { it.destinationDirectory },
+            new File(repo, 'scripts/tests/resources/fabric-agent3-probe')) + fabric.sourceSets.apiV2.output +
+            fabric.files(fabric.sourceSets.main.runtimeClasspath.files.findAll { it.name.endsWith('.jar') }) + energy
+        mainClass.set('net.fabricmc.loader.impl.launch.knot.KnotServer')
+        systemProperty 'fabric.development', 'true'
+        doFirst {
+            def gameJar = fabric.sourceSets.main.compileClasspath.find { it.name.startsWith('minecraft-merged-') }
+            if (gameJar == null) throw new GradleException('Resolved Minecraft game JAR not found for native fluid launch')
+            systemProperty 'fabric.gameJarPath', gameJar.absolutePath
+        }
+        javaLauncher.set(fabric.javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+        workingDir fabric.layout.buildDirectory.dir('agent3-native-check').get().asFile
+        args 'nogui'
+    }
+    fabric.tasks.register('agent3Probes') {
+        dependsOn probes.keySet().collect { fabric.tasks.named(it) }, fabric.tasks.named('agent3FluidProbe')
+    }
+}

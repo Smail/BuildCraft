@@ -38,7 +38,7 @@ public class ModelHolderRegistry {
         for (String className : BUILTIN_HOLDER_CLASSES) {
             try {
                 Class.forName(className, true, loader);
-            } catch (ClassNotFoundException ignored) {
+            } catch (ClassNotFoundException ignored) { buildcraft.lib.internal.debug.BCLog.caught("ModelHolderRegistry.bootstrapBuiltinHolders", ignored);
                 // BuildCraft modules are independently optional.
             } catch (LinkageError | RuntimeException error) {
                 BCLog.logger.error("[lib.model.holder] Failed to initialise model holder class " + className, error);

@@ -48,6 +48,31 @@ Build root: `builds/26.X`
 
 The 26.X build uses Java 25 and its own NeoForge/ModDevGradle toolchain. It shares the same repository-level source architecture and parity rules as the older generations while keeping toolchain requirements isolated.
 
+`26.3-fabric` is a development target while its runtime bindings are being ported.
+It uses Fabric Loader 0.19.5, Fabric API 0.161.0+26.3 and Loom 1.18.3 without
+legacy mappings. The 26.X wrapper uses Gradle 9.7.1 to satisfy Loom's Gradle 9.7+
+requirement. Forge and 1.21.X wrappers remain independent.
+
+Fabric builds use the same five source layers and API/addon fixture checks.
+`build-logic/target-metadata.gradle` supplies generated build identity for Fabric
+and NeoForge. Access wideners are selected through the target's `access.widener`
+property and must match the reference in `fabric.mod.json`.
+
+Run Fabric tasks from `builds/26.X`:
+
+```text
+./gradlew :26.3-fabric:compileApiV2Java :26.3-fabric:compileAddonFixtureJava
+./gradlew :26.3-fabric:buildAndCollect
+./gradlew :26.3-fabric:runServer
+./gradlew :26.3-fabric:runClient
+./gradlew :26.3-fabric:runGameTestServer
+```
+
+GameTest code and metadata belong in the Fabric layers' `src/gametest` tree;
+the test mod ID is `buildcraft_gametest`. Each run has its own directory under
+`run/26.3-fabric`. Release support, CI publishing and gameplay smoke validation
+remain pending until the complete Fabric runtime compiles and runs.
+
 ## Repository layout
 
 ```text

@@ -49,7 +49,7 @@ public class BCLib {
             Class<?> loader = Class.forName("net.neoforged.fml.loading.FMLLoader");
             Object current = loader.getMethod("getCurrent").invoke(null);
             return (Boolean) current.getClass().getMethod("isProduction").invoke(current);
-        } catch (ReflectiveOperationException exception) {
+        } catch (ReflectiveOperationException exception) { buildcraft.lib.internal.debug.BCLog.caught("BCLib.isProductionEnvironment", exception);
             // The public FMLLoader environment field is authoritative for this loader API.
         }
         try {

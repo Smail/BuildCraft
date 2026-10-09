@@ -1,5 +1,6 @@
 {
     "textures": {
+        "particle": "buildcraftbuilders:blocks/builder/slot_empty",
         "all": "buildcraftbuilders:blocks/builder/slot_empty"
     },
     "elements": [

@@ -1,10 +1,219 @@
-/*
- * Fabric loader adapter slot.
- *
- * No Fabric production target is enabled yet. When a build-root shim applies
- * Fabric Loom, this adapter should bind the same bcTarget source/materializer
- * contract used by Forge and NeoForge rather than introducing a parallel source
- * layout.
- */
+/* Fabric-specific target adapter. Loom is applied by the build-root shim. */
 apply from: new File(rootProject.file('../..').canonicalFile, 'build-logic/common-target.gradle')
-throw new GradleException('Fabric loader adapter is reserved but no production Fabric target is configured yet')
+
+def bc = project.ext.bcTarget
+def requiredProperty = bc.requiredProperty
+def optionalProperty = bc.optionalProperty
+def booleanProperty = bc.booleanProperty
+def repositoryRoot = bc.repositoryRoot
+def prepareEffectiveSource = bc.prepareEffectiveSource
+def effectiveDirs = bc.effectiveDirs
+
+if (bc.loaderName != 'fabric') {
+    throw new GradleException("Fabric adapter cannot build ${bc.targetName}")
+}
+
+sourceSets {
+    main {
+        java.setSrcDirs(effectiveDirs('src/main/java'))
+        resources.setSrcDirs(effectiveDirs('src/main/resources'))
+        resources.exclude 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml', 'META-INF/accesstransformer.cfg'
+    }
+    test {
+        java.setSrcDirs(effectiveDirs('src/test/java'))
+        resources.setSrcDirs(effectiveDirs('src/test/resources'))
+    }
+    apiV2 {
+        java.setSrcDirs(effectiveDirs('src/main/java'))
+        java.include 'buildcraft/api/v2/**'
+        resources.setSrcDirs([])
+        compileClasspath = sourceSets.main.compileClasspath
+        runtimeClasspath = output + compileClasspath
+    }
+    addonFixture {
+        java.setSrcDirs([new File(bc.effectiveSourceDir, 'addon-fixture/src/main/java')])
+        resources.setSrcDirs([])
+        compileClasspath = sourceSets.apiV2.output + sourceSets.apiV2.compileClasspath
+        runtimeClasspath = output + compileClasspath
+    }
+}
+
+for (def compatibility : ['create', 'forestry', 'ic2', 'jade', 'jei']) {
+    if (!booleanProperty("compat.${compatibility}.enabled", false)) {
+        sourceSets.main.java.exclude "buildcraft/compat/${compatibility}/**"
+    }
+}
+if (!booleanProperty('compile.datagen.enabled', true)) {
+    sourceSets.main.java.exclude 'buildcraft/energy/BCEnergyProvider.java'
+    sourceSets.main.java.exclude 'buildcraft/lib/BCTagsProvider.java'
+    sourceSets.main.java.exclude 'buildcraft/silicon/BCSiliconRecipesProvider.java'
+    sourceSets.main.java.exclude 'buildcraft/factory/BCFactoryRecipesProvider.java'
+    sourceSets.main.java.exclude 'buildcraft/transport/BCTransportRecipesProvider.java'
+    sourceSets.main.java.exclude 'buildcraft/core/BCCoreRecipes.java'
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://api.modrinth.com/maven' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${bc.minecraftVersion}"
+    implementation "net.fabricmc:fabric-loader:${requiredProperty('deps.fabric_loader')}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${requiredProperty('deps.fabric_api')}"
+    implementation include('teamreborn:energy:5.0.0')
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    testImplementation platform("org.junit:junit-bom:${requiredProperty('deps.junit')}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+for (def compatibility : ['jade', 'jei']) {
+    if (booleanProperty("compat.${compatibility}.enabled", false)) {
+        dependencies.add('compileOnly', requiredProperty("deps.${compatibility}"))
+        if (providers.gradleProperty('ci_runtime_profile').getOrElse('default') in ['default', 'all', compatibility]) {
+            dependencies.add('runtimeOnly', requiredProperty("deps.${compatibility}"))
+        }
+    }
+}
+
+loom {
+    mods {
+        buildcraft { sourceSet sourceSets.main }
+    }
+    runs {
+        client {
+            runDir new File(repositoryRoot, "run/${bc.targetName}/client").absolutePath
+            // Without a fixed name the dev launcher picks a random PlayerNNN each start. The player UUID changes with
+            // it, so advancement and stat progress never carry over to the next launch.
+            programArgs "--username", "BuildCraftDev"
+        }
+        server { runDir new File(repositoryRoot, "run/${bc.targetName}/server").absolutePath }
+    }
+}
+
+fabricApi.configureTests {
+    createSourceSet = true
+    modId = 'buildcraft_gametest'
+    enableGameTests = true
+    enableClientGameTests = false
+    eula = true
+}
+sourceSets.gametest {
+    java.setSrcDirs(effectiveDirs('src/gametest/java'))
+    resources.setSrcDirs(effectiveDirs('src/gametest/resources'))
+}
+loom.runs.named('gameTest') {
+    runDir new File(repositoryRoot, "run/${bc.targetName}/gametest").absolutePath
+}
+tasks.register('runGameTestServer') {
+    group = 'verification'
+    description = 'Run the Fabric dedicated-server GameTest configuration'
+    dependsOn tasks.named('runGameTest')
+}
+
+def accessWidener = optionalProperty('access.widener')
+if (accessWidener) {
+    def maintainedWidener = bc.resolveSourceFile("src/main/resources/${accessWidener}")
+    if (maintainedWidener == null) {
+        throw new GradleException("Missing access widener ${accessWidener} for ${bc.targetName}")
+    }
+    loom.accessWidenerPath = maintainedWidener
+}
+
+apply from: new File(repositoryRoot, 'build-logic/target-metadata.gradle')
+
+def resourceProperties = [
+        mod_version: project.version.toString(),
+        mod_license: requiredProperty('mod.license'),
+        loader_version_range: requiredProperty('loader.version_range'),
+        minecraft_version_range: requiredProperty('minecraft.version_range'),
+        pack_format: requiredProperty('pack.format'),
+        resource_pack_format: requiredProperty('pack.resource_format'),
+        data_pack_format: requiredProperty('pack.data_format'),
+        jei_version_range: requiredProperty('compat.jei.range'),
+        jade_version_range: requiredProperty('compat.jade.range')
+]
+
+tasks.named('processResources', ProcessResources) {
+    inputs.properties(resourceProperties)
+    filesMatching(['fabric.mod.json', 'pack.mcmeta']) { expand(resourceProperties) }
+    doLast {
+        def metadataFile = new File(destinationDir, 'fabric.mod.json')
+        if (!metadataFile.isFile()) {
+            throw new GradleException("Missing fabric.mod.json for ${bc.targetName}; provide the Fabric module entrypoints before packaging")
+        }
+        def metadata
+        try {
+            metadata = new groovy.json.JsonSlurper().parse(metadataFile, 'UTF-8')
+        } catch (IOException exception) {
+            throw new GradleException("Cannot read Fabric metadata ${metadataFile}", exception)
+        } catch (groovy.json.JsonException exception) {
+            throw new GradleException("Invalid Fabric metadata ${metadataFile}", exception)
+        }
+        if (!(metadata instanceof Map) || metadata.schemaVersion != 1 || metadata.version != project.version.toString()) {
+            throw new GradleException("Fabric metadata must use schemaVersion 1 and the generated version ${project.version}")
+        }
+        if (!(metadata.entrypoints instanceof Map) || !metadata.entrypoints.main) {
+            throw new GradleException('Fabric metadata must declare a common mod initializer')
+        }
+        if (metadata.accessWidener != accessWidener && (metadata.accessWidener || accessWidener)) {
+            throw new GradleException('Fabric metadata and target access.widener must reference the same resource')
+        }
+    }
+}
+
+java { withSourcesJar() }
+
+tasks.withType(JavaCompile).configureEach {
+    dependsOn prepareEffectiveSource
+    options.encoding = 'UTF-8'
+    options.release = bc.javaVersion
+    options.compilerArgs.add('-Xlint:none')
+    options.compilerArgs.addAll(['-Xmaxerrs', '1000'])
+}
+tasks.withType(ProcessResources).configureEach { dependsOn prepareEffectiveSource }
+tasks.withType(Test).configureEach {
+    dependsOn prepareEffectiveSource
+    useJUnitPlatform()
+    workingDir bc.effectiveSourceDir
+    systemProperty 'buildcraft.expectedPackFormat', requiredProperty('pack.format')
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat 'full'
+    }
+}
+tasks.named('compileAddonFixtureJava') { dependsOn tasks.named('compileApiV2Java') }
+tasks.named('sourcesJar') { dependsOn prepareEffectiveSource }
+
+for (def validator : ['validate-api-v2', 'validate-api-v2-only']) {
+    def validation = tasks.register(validator, Exec) {
+        group = 'verification'
+        workingDir repositoryRoot
+        environment 'PYTHONDONTWRITEBYTECODE', '1'
+        commandLine bc.pythonExecutable, new File(repositoryRoot, "scripts/${validator}.py").absolutePath
+    }
+    tasks.named('check') { dependsOn validation }
+}
+tasks.named('check') {
+    dependsOn tasks.named('compileApiV2Java'), tasks.named('compileAddonFixtureJava')
+}
+tasks.register('buildAndCollect') {
+    group = 'build'
+    description = "Build ${bc.targetName}; artifacts are written to ${bc.centralJarOutputDir}"
+    dependsOn tasks.named('build')
+}
+
+tasks.named('jar', Jar) {
+    from(new File(repositoryRoot, 'LICENSE.txt'))
+    manifest.attributes('Implementation-Title': requiredProperty('mod.name'), 'Implementation-Version': project.version)
+}
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) { from components.java }
+    }
+    repositories {
+        maven { url = new File(repositoryRoot, "mcmodsrepo/${bc.buildGeneration}").toURI() }
+    }
+}

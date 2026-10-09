@@ -18,7 +18,6 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -137,20 +136,16 @@ public final class RenderCompat {
         blit(graphics, texture, x, y, u, v, width, height, 256, 256);
     }
 
-    public static ItemRenderer itemRenderer() {
-        return Minecraft.getInstance().getItemRenderer();
-    }
-
     public static RenderType solid() {
-        return BCRenderCompat.solid();
+        return BCRenderTypes.solid();
     }
 
     public static RenderType cutout() {
-        return BCRenderCompat.cutout();
+        return BCRenderTypes.cutout();
     }
 
     public static RenderType translucent() {
-        return BCRenderCompat.translucent();
+        return BCRenderTypes.translucent();
     }
 
     public static RenderType entityCutout(Identifier texture) {
@@ -235,7 +230,7 @@ public final class RenderCompat {
             Method method = renderSystem.getMethod(methodName, parameterTypes);
             method.invoke(null, args);
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException |
-                 RuntimeException | LinkageError ignored) {
+                 RuntimeException | LinkageError ignored) { buildcraft.lib.internal.debug.BCLog.caught("RenderCompat.invokeRenderSystem", ignored);
         }
     }
 

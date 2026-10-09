@@ -341,7 +341,7 @@ public final class CreativeTabManager {
                             addUnique(items, seen, stack);
                         }
                     }
-                } catch (RuntimeException ignored) {
+                } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("CreativeTabManager.accept", ignored);
                     // Optional integrations must not break creative-tab assembly.
                 }
             }

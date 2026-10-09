@@ -28,7 +28,7 @@ public enum FacadeItemColours implements ItemColor {
         }
         try {
             colour = Minecraft.getInstance().getBlockColors().getColor(state.stateInfo.state, null, null);
-        } catch (NullPointerException ex) {
+        } catch (NullPointerException ex) { buildcraft.lib.internal.debug.BCLog.caught("FacadeItemColours.getColor", ex);
             // the block didn't like the null world or player
         }
         if (colour != -1 && colour != 0) {

@@ -55,7 +55,7 @@ public abstract class BCFluid extends BaseFlowingFluid {
 					BlockPos.class, BlockState.class, BlockPos.class, BlockState.class);
 			try {
 				canPassThroughWall = lookup.findStatic(FlowingFluid.class, "canPassThroughWall", methodType);
-			} catch (NoSuchMethodException | IllegalAccessException e) {
+			} catch (NoSuchMethodException | IllegalAccessException e) { buildcraft.lib.internal.debug.BCLog.caught("BCFluid.58", e);
 				canPassThroughWall = lookup.findStatic(FlowingFluid.class, "m_76061_", methodType);
 			}
 

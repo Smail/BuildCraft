@@ -1609,13 +1609,11 @@
     },
     {
       "type": "minecraft:single",
-      "resource": "buildcraftenergy:items/bucket_fuel",
-      "sprite": "buildcraftenergy:items/bucketfuel"
+      "resource": "buildcraftenergy:items/bucket_fuel"
     },
     {
       "type": "minecraft:single",
-      "resource": "buildcraftenergy:items/bucket_red_plasma",
-      "sprite": "buildcraftenergy:items/bucketredplasma"
+      "resource": "buildcraftenergy:items/bucket_red_plasma"
     },
     {
       "type": "minecraft:single",

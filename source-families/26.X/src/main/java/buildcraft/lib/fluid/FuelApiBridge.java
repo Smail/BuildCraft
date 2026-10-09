@@ -78,7 +78,7 @@ public final class FuelApiBridge {
             serialized.put("components", componentTag);
 
             return FluidStackUtil.parseOptional(serialized);
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException e) { buildcraft.lib.internal.debug.BCLog.caught("FuelApiBridge.stackOfVariantWithComponents", e);
             return new FluidStack(fluid, amount);
         }
     }

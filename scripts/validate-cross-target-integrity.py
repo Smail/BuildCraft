@@ -639,8 +639,10 @@ def validate_build_metadata_and_source_hygiene(props: dict[str, str]) -> None:
             if path.is_file() and "src/main/resources" in path.as_posix():
                 fail(f"production resource tree contains ignored migration .jsonx: {path.relative_to(ROOT)}")
 
-    for rel in ("build-logic/loaders/forge-target.gradle", "build-logic/loaders/neoforge-target.gradle"):
+    for rel in ("build-logic/loaders/forge-target.gradle", "build-logic/loaders/neoforge-target.gradle", "build-logic/loaders/fabric-target.gradle"):
         text = (ROOT / rel).read_text(encoding="utf-8")
+        if "build-logic/target-metadata.gradle" in text:
+            text += (ROOT / "build-logic/target-metadata.gradle").read_text(encoding="utf-8")
         for token in (
             "generateBuildCraftTarget",
             "BuildCraftTarget.java",
@@ -678,6 +680,11 @@ def validate_build_metadata_and_source_hygiene(props: dict[str, str]) -> None:
             ):
                 if token not in bclib:
                     fail(f"{target}: BCLib DEV mode lost {token!r}")
+        elif target.endswith("-fabric"):
+            if "FabricLoader.getInstance().isDevelopmentEnvironment()" not in bclib:
+                fail(f"{target}: BCLib DEV mode lost Fabric development detection")
+            if 'Boolean.getBoolean("buildcraft.dev")' not in bclib:
+                fail(f"{target}: BCLib DEV mode lost the explicit development override")
         elif "!FMLEnvironment.production || Boolean.getBoolean(\"buildcraft.dev\")" not in bclib:
             fail(f"{target}: BCLib DEV mode lost Forge production detection")
         if "!false" in bclib:

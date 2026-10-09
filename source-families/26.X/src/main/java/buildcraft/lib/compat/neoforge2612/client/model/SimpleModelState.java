@@ -2,7 +2,7 @@ package buildcraft.lib.compat.neoforge2612.client.model;
 
 import com.mojang.math.Transformation;
 
-import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 
 /** Minimal SimpleModelState facade used by shared BuildCraft model code. */
 public class SimpleModelState implements ModelState {
@@ -19,6 +19,8 @@ public class SimpleModelState implements ModelState {
     }
 
     public Transformation getRotation() { return rotation; }
+
+    public Transformation transformation() { return rotation; }
 
     public boolean isUvLocked() { return uvLocked; }
 }

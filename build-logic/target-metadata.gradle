@@ -1,0 +1,59 @@
+/* Generated build identity shared by loader adapters. */
+def bc = project.ext.bcTarget
+def generatedTargetSources = layout.buildDirectory.dir('generated/sources/buildcraftTarget/java')
+
+def gitMetadata = { List<String> arguments ->
+    try {
+        def process = new ProcessBuilder(['git'] + arguments)
+                .directory(bc.repositoryRoot).redirectErrorStream(true).start()
+        def output = process.inputStream.getText('UTF-8').trim()
+        return process.waitFor() == 0 && !output.isBlank() ? output : 'unknown'
+    } catch (InterruptedException exception) {
+        Thread.currentThread().interrupt()
+        throw new GradleException('Interrupted while reading Git build metadata', exception)
+    } catch (IOException exception) {
+        logger.info('Git build metadata unavailable', exception)
+        return 'unknown'
+    }
+}
+
+def targetValues = [
+        MINECRAFT_VERSION: bc.minecraftVersion,
+        LOADER: bc.loaderName,
+        NETWORK_PROTOCOL: bc.requiredProperty('network.protocol'),
+        MOD_VERSION: project.version.toString(),
+        GIT_BRANCH: providers.environmentVariable('GITHUB_REF_NAME').getOrElse(gitMetadata(['rev-parse', '--abbrev-ref', 'HEAD'])),
+        GIT_COMMIT_HASH: providers.environmentVariable('GITHUB_SHA').getOrElse(gitMetadata(['rev-parse', 'HEAD'])),
+        GIT_COMMIT_MESSAGE: gitMetadata(['log', '-1', '--pretty=%s']),
+        GIT_COMMIT_AUTHOR: gitMetadata(['log', '-1', '--pretty=%an <%ae>'])
+]
+
+def generateBuildCraftTarget = tasks.register('generateBuildCraftTarget') {
+    inputs.properties(targetValues)
+    outputs.dir(generatedTargetSources)
+    doLast {
+        def outputFile = generatedTargetSources.get().file('buildcraft/lib/net/BuildCraftTarget.java').asFile
+        if (!outputFile.parentFile.isDirectory() && !outputFile.parentFile.mkdirs()) {
+            throw new GradleException("Cannot create generated source directory ${outputFile.parentFile}")
+        }
+        def fields = targetValues.collect { name, value ->
+            // JSON string escaping also produces valid Java string literals for metadata.
+            "    public static final String ${name} = ${groovy.json.JsonOutput.toJson(value.toString())};"
+        }.join('\n')
+        try {
+            outputFile.setText("""package buildcraft.lib.net;
+
+/** Generated build identity for ${bc.targetName}. */
+public final class BuildCraftTarget {
+${fields}
+
+    private BuildCraftTarget() {}
+}
+""", 'UTF-8')
+        } catch (IOException exception) {
+            throw new GradleException("Cannot write generated build identity ${outputFile}", exception)
+        }
+    }
+}
+sourceSets.main.java.srcDir(generatedTargetSources)
+tasks.named('compileJava') { dependsOn(generateBuildCraftTarget) }

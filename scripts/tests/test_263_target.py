@@ -22,6 +22,33 @@ TARGET = "26.3-neoforge"
 # (description, source, fragments that must appear, fragments that must disappear)
 TRANSFORM_CASES = (
     (
+        "native inherited robotics API names",
+        "import net.minecraft.world.inventory.ClickType;\n"
+        "import net.minecraft.world.level.storage.DimensionDataStorage;\n"
+        "import net.minecraft.client.renderer.LightTexture;\n"
+        "import net.minecraft.client.renderer.state.CameraRenderState;\n"
+        "ClickType.PICKUP; LightTexture.FULL_BRIGHT;",
+        ("ContainerInput.PICKUP", "storage.SavedDataStorage", "net.minecraft.util.LightCoordsUtil", "state.level.CameraRenderState"),
+        ("ClickType", "DimensionDataStorage", "LightTexture"),
+    ),
+    (
+        "chunk record access and BlockPos construction",
+        "ChunkPos plannerChunk; BlockPos position; plannerChunk.x; key.chunkPos.z; "
+        "new ChunkPos(position); new ChunkPos(menu.tile.getBlockPos()); new ChunkPos(1, 2); new ChunkPos(packed);",
+        ("plannerChunk.x()", "key.chunkPos.z()", "ChunkPos.containing(position)",
+         "ChunkPos.containing(menu.tile.getBlockPos())", "new ChunkPos(1, 2)", "new ChunkPos(packed)"),
+        ("plannerChunk.x;",),
+    ),
+    (
+        "extracted GUI operations",
+        "import net.minecraft.client.gui.GuiGraphics;\n"
+        "guiGraphics.drawString(font, label, x, y, color, false); "
+        "guiGraphics.renderItem(stack, x, y); guiGraphics.renderItemDecorations(font, stack, x, y); "
+        "new net.minecraft.client.input.CharacterEvent(codePoint, modifiers);",
+        ("GuiGraphicsExtractor", "guiGraphics.text(", "guiGraphics.item(", "guiGraphics.itemDecorations(", "CharacterEvent(codePoint)"),
+        ("CharacterEvent(codePoint, modifiers)",),
+    ),
+    (
         "storage-free advancement triggers",
         "import net.minecraft.advancements.criterion.InventoryChangeTrigger;\n"
         "import net.minecraft.advancements.criterion.ItemPredicate;\n",

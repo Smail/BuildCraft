@@ -62,7 +62,7 @@ public abstract class JadeEntrypointDedupMixin {
             Method method = entrypoint.getClass().getMethod("className");
             Object value = method.invoke(entrypoint);
             return value instanceof String name ? name : null;
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
+        } catch (ReflectiveOperationException | RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("JadeEntrypointDedupMixin.className", ignored);
             return null;
         }
     }

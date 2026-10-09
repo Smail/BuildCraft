@@ -30,7 +30,7 @@ public final class HeatExchangeRecipeDefinition implements RecipeDefinition {
                 return CodecResult.success(new HeatExchangeRecipeDefinition(
                     data.kind(), input.valueOrThrow(), output, data.heatFrom(), data.heatTo()
                 ));
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("HeatExchangeRecipeDefinition.decode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }

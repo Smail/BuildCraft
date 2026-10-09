@@ -65,7 +65,7 @@ public class SpriteUtil {
         }
         try {
             return SKINS.getUnchecked(profile).get().body().texturePath();
-        } catch (RuntimeException error) {
+        } catch (RuntimeException error) { buildcraft.lib.internal.debug.BCLog.caught("SpriteUtil.getSkinSpriteLocation", error);
             // Offline services must not blank the ledger or prevent opening a machine GUI.
             return DefaultPlayerSkin.get(profile).body().texturePath();
         }

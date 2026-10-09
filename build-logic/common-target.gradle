@@ -104,7 +104,7 @@ for (def layer : sourceLayers) {
         throw new GradleException("Configured source layer '${layer}' for '${targetName}' does not exist")
     }
 }
-if (targetAccessTransformer == null) {
+if (loaderName != 'fabric' && targetAccessTransformer == null) {
     throw new GradleException("No access transformer found for '${targetName}'")
 }
 

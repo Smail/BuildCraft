@@ -6,8 +6,6 @@
 
 package buildcraft.lib.client.render.fluid;
 
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
-
 /** Determines what sprite should be used for rendering fluids. */
 public enum FluidSpriteType {
     /** A completely frozen sprite - it has no animation. Useful if you need to show fluid moving around, and this stops
@@ -15,8 +13,8 @@ public enum FluidSpriteType {
      * it is derived from), but it is just repeating (so that you don't have to calculate multiple quads for a single
      * face whenever the animation crosses over the border of the original sprite) */
     FROZEN,
-    /** The sprite that {@link IClientFluidTypeExtensions#getStillTexture()} refers to. */
+    /** The still texture supplied by the fluid's client model. */
     STILL,
-    /** The sprite that {@link IClientFluidTypeExtensions#getFlowingTexture()} refers to. */
+    /** The flowing texture supplied by the fluid's client model. */
     FLOWING
 }
