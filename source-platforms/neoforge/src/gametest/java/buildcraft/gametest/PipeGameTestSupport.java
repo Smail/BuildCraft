@@ -218,8 +218,18 @@ public final class PipeGameTestSupport {
 
         @Override
         public BlockEntity getPipeTile() {
+//? if >=26.3 {
+            // The 26.3 flows mark the holder dirty when a transfer transaction commits.
+            return pipeTile;
+//? } else {
             return null;
+//? }
         }
+
+//? if >=26.3 {
+        private final BlockEntity pipeTile = new net.minecraft.world.level.block.entity.ChestBlockEntity(
+            BlockPos.ZERO, net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState());
+//? }
 
         @Override
         public IPipe getPipe() {
@@ -254,6 +264,22 @@ public final class PipeGameTestSupport {
         @SuppressWarnings("unchecked")
         public <T> @Nullable T getCapabilityFromPipe(Direction side, @Nonnull BlockCapability<T, Direction> capability) {
             Map<BlockCapability<?, Direction>, Object> byCapability = capabilities.get(side);
+//? if >=26.3 {
+            // 26.3 flows read the native transfer capabilities while the fixtures are exposed through the BuildCraft
+            // capabilities. Adapt them the same way the production block entity registration does.
+            if (byCapability != null) {
+                if (capability == net.neoforged.neoforge.capabilities.Capabilities.Fluid.BLOCK
+                    && byCapability.get(buildcraft.lib.misc.CapUtil.CAP_FLUIDS)
+                        instanceof net.neoforged.neoforge.fluids.capability.IFluidHandler fluids) {
+                    return (T) buildcraft.lib.compat.transfer.TransferInterop.exportFluids(() -> fluids);
+                }
+                if (capability == net.neoforged.neoforge.capabilities.Capabilities.Energy.BLOCK
+                    && byCapability.get(buildcraft.lib.misc.CapUtil.CAP_FE)
+                        instanceof net.neoforged.neoforge.energy.IEnergyStorage energy) {
+                    return (T) buildcraft.lib.compat.transfer.TransferInterop.exportEnergy(() -> energy);
+                }
+            }
+//? }
             return byCapability == null ? null : (T) byCapability.get(capability);
         }
 

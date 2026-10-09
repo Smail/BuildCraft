@@ -223,6 +223,23 @@ public final class PipeForgeEnergyGameTests {
         private int executeExtractions;
         private int lastSimulated;
         private int lastExecuted;
+//? if >=26.3 {
+        // 26.3 reaches this fixture through the native transfer adapter, which always asks for an execute inside a
+        // transaction. Like the production storages, journal the extraction: an aborted transaction is a simulation.
+        private int lastRequested;
+        private final buildcraft.lib.compat.transfer.TransferJournal<Integer> journal =
+            new buildcraft.lib.compat.transfer.TransferJournal<>(
+                () -> stored,
+                saved -> {
+                    stored = saved;
+                    simulateExtractions++;
+                    lastSimulated = lastRequested;
+                },
+                saved -> {
+                    executeExtractions++;
+                    lastExecuted = lastRequested;
+                });
+//? }
 
         private TrackingEnergyStorage(int stored, int capacity, boolean canExtract, boolean canReceive) {
             this.stored = stored;
@@ -243,6 +260,14 @@ public final class PipeForgeEnergyGameTests {
         public int extractEnergy(int maxExtract, boolean simulate) {
             if (!canExtract) return 0;
             int amount = Math.min(Math.max(0, maxExtract), stored);
+//? if >=26.3 {
+            if (!simulate && buildcraft.lib.compat.transfer.TransferJournal.active()) {
+                journal.record();
+                lastRequested = maxExtract;
+                stored -= amount;
+                return amount;
+            }
+//? }
             if (simulate) {
                 simulateExtractions++;
                 lastSimulated = maxExtract;

@@ -116,6 +116,30 @@ public final class PipeFluidPowerGameTests {
         PipeFlowFluids flow = new PipeFlowFluids(pipe);
         pipe.setFlow(flow);
 
+//? if >=26.3 {
+        // 26.3 pipes publish the native transfer handler only; the legacy BuildCraft fluid capability is gone.
+        var handler = flow.resourceHandler(Direction.EAST);
+        var water = net.neoforged.neoforge.transfer.fluid.FluidResource.of(net.minecraft.world.level.material.Fluids.WATER);
+        var lava = net.neoforged.neoforge.transfer.fluid.FluidResource.of(net.minecraft.world.level.material.Fluids.LAVA);
+        require(helper, handler != null, "fluid pipe did not expose its fluid capability");
+        require(helper, handler.size() == 1, "fluid pipe capability reported no tanks");
+        require(helper, handler.getCapacityAsLong(0, water) == flow.capacity,
+            "fluid pipe reported the wrong tank capacity");
+        require(helper, handler.getResource(0).isEmpty(), "empty pipe reported non-empty tank contents");
+        require(helper, handler.isValid(0, water), "empty connected fluid pipe rejected a valid fluid");
+
+        int rate = PipeApi.getFluidTransferInfo(BCTransportPipes.cobbleFluid).transferPerTick;
+        int inserted;
+        try (var tx = net.neoforged.neoforge.transfer.transaction.Transaction.openRoot()) {
+            inserted = handler.insert(0, water, rate, tx);
+            tx.commit();
+        }
+        require(helper, inserted == rate, "fluid capability filled the wrong amount");
+        require(helper, handler.getAmountAsLong(0) == rate, "fluid capability reported the wrong stored amount");
+        require(helper, handler.getResource(0).equals(water), "fluid capability reported the wrong stored fluid");
+        require(helper, !handler.isValid(0, lava), "water-filled pipe advertised lava as valid");
+        helper.succeed();
+//? } else {
         IFluidHandler handler = flow.getCapability(CapUtil.CAP_FLUIDS, Direction.EAST);
         require(helper, handler != null, "fluid pipe did not expose its fluid capability");
         require(helper, handler.getTanks() == 1, "fluid pipe capability reported no tanks");
@@ -137,6 +161,7 @@ public final class PipeFluidPowerGameTests {
         require(helper, !handler.isFluidValid(0, new FluidStack(net.minecraft.world.level.material.Fluids.LAVA, 1)),
             "water-filled pipe advertised lava as valid");
         helper.succeed();
+//? }
     }
 
     @GameTest(templateNamespace = BCLib.MODID, template = PipeGameTestSupport.LARGE_EMPTY_TEMPLATE, timeoutTicks = 20)
