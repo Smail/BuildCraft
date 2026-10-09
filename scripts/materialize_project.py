@@ -28,12 +28,16 @@ from source_layout import materialize_target
 DATAGEN_DISABLED_SOURCES = (
     "src/main/java/buildcraft/energy/BCEnergyProvider.java",
     "src/main/java/buildcraft/lib/BCTagsProvider.java",
-    "src/main/java/buildcraft/silicon/BCSiliconRecipesProvider.java",
-    "src/main/java/buildcraft/factory/BCFactoryRecipesProvider.java",
     "src/main/java/buildcraft/transport/BCTransportRecipesProvider.java",
     "src/main/java/buildcraft/core/BCCoreRecipes.java",
     "src/main/java/buildcraft/core/client/model/FragileFluidContainerModel.java",
     "src/main/java/buildcraft/core/client/model/ModelEngine.java",
+)
+
+# Written against the native RecipeProvider API from 26.3 on and referenced unconditionally by BCSilicon/BCFactory.
+NATIVE_RECIPE_PROVIDERS_SINCE_26_3 = (
+    "src/main/java/buildcraft/silicon/BCSiliconRecipesProvider.java",
+    "src/main/java/buildcraft/factory/BCFactoryRecipesProvider.java",
 )
 
 COMPAT_NAMES = ("jei", "jade", "ic2", "forestry", "create")
@@ -175,7 +179,11 @@ def _apply_compile_exclusions(project_root: Path, properties: dict[str, str], ta
             shutil.rmtree(java_root / "buildcraft/compat" / name, ignore_errors=True)
 
     if not _bool_property(properties, target, "compile.datagen.enabled", True):
-        for relative in DATAGEN_DISABLED_SOURCES:
+        disabled = list(DATAGEN_DISABLED_SOURCES)
+        minecraft = tuple(int(part) for part in _target_property(properties, target, "deps.minecraft").split("."))
+        if minecraft < (26, 3):
+            disabled.extend(NATIVE_RECIPE_PROVIDERS_SINCE_26_3)
+        for relative in disabled:
             (project_root / relative).unlink(missing_ok=True)
 
 

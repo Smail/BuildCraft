@@ -110,8 +110,14 @@ if (!dataGenSourcesEnabled) {
     sourceSets.main.java.exclude 'buildcraft/energy/BCEnergyProvider.java'
     sourceSets.main.java.exclude 'buildcraft/lib/BCTagsProvider.java'
     // SimpleRobotRegistryProvider is runtime SavedData/robot docking infrastructure, not a datagen provider.
-    sourceSets.main.java.exclude 'buildcraft/silicon/BCSiliconRecipesProvider.java'
-    sourceSets.main.java.exclude 'buildcraft/factory/BCFactoryRecipesProvider.java'
+    // From 26.3 on these two providers are written against the native RecipeProvider API and are referenced
+    // unconditionally from BCSilicon/BCFactory.gatherData, so they must stay in the compile.
+    def mcVersionParts = minecraftVersion.tokenize('.').collect { it as int }
+    def nativeRecipeProviders = mcVersionParts[0] > 26 || (mcVersionParts[0] == 26 && mcVersionParts[1] >= 3)
+    if (!nativeRecipeProviders) {
+        sourceSets.main.java.exclude 'buildcraft/silicon/BCSiliconRecipesProvider.java'
+        sourceSets.main.java.exclude 'buildcraft/factory/BCFactoryRecipesProvider.java'
+    }
     sourceSets.main.java.exclude 'buildcraft/transport/BCTransportRecipesProvider.java'
     sourceSets.main.java.exclude 'buildcraft/core/BCCoreRecipes.java'
     // The effective source materializer owns version-specific source selection.
