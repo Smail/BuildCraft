@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "buildcraft_gametest",
+  "version": "1.0.0",
+  "name": "BuildCraft GameTests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "buildcraft.gametest.BuildCraftFabricGameTests"
+    ]
+  }
+}
