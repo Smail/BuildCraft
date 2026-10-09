@@ -456,6 +456,12 @@ public abstract class TileEngineBase_BC8 extends TileBC_Neptune implements IDebu
     public void neighbourBlockChanged(BlockState state, BlockPos nehighbour, boolean a) {
     	super.onNeighbourBlockChanged(state, nehighbour);
         isRedstonePowered = level.hasNeighborSignal(worldPosition);
+        // BuildCraft behaviour: re-orient on a neighbour change, but only when the current facing is no longer a valid
+        // receiver (rotateIfInvalid keeps a valid facing). BlockEngineBase_BC8.neighborChanged has the pre-26 signature
+        // and is never called by vanilla, so the tile hook does it.
+        if (!level.isClientSide()) {
+            rotateIfInvalid();
+        }
     }
 
     public void update() {

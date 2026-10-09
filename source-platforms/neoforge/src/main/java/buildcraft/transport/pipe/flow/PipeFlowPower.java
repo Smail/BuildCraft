@@ -331,6 +331,9 @@ public class PipeFlowPower extends PipeFlow implements IFlowPower, IDebuggable {
         if (facing == null) {
             return null;
         } else if (capability == MjCapabilities.CAP_RECEIVER) {
+            // isReceiver is only set by reconfigure(), which otherwise runs lazily on the first tick. A freshly placed
+            // wooden kinesis pipe must already report itself as a receiver or an engine cannot find a port on it.
+            ensureConfigured();
             return isReceiver ? (T) sections.get(facing) : null;
         } else if (capability == MjCapabilities.CAP_CONNECTOR) {
             return (T) sections.get(facing);
