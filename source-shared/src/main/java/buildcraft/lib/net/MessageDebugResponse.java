@@ -33,9 +33,17 @@ public class MessageDebugResponse {
             throw new IllegalStateException("Too many debugger response lines");
         }
         buffer.writeInt(msg.left.size());
-        msg.left.forEach(line -> buffer.writeUtf(line, MAX_LINE_LENGTH));
+        msg.left.forEach(line -> buffer.writeUtf(clip(line), MAX_LINE_LENGTH));
         buffer.writeInt(msg.right.size());
-        msg.right.forEach(line -> buffer.writeUtf(line, MAX_LINE_LENGTH));
+        msg.right.forEach(line -> buffer.writeUtf(clip(line), MAX_LINE_LENGTH));
+    }
+
+    /** Debug lines (for example the per-tick history of a fluid pipe section) can be long; a too long line must be cut, not kill the connection. */
+    private static String clip(String line) {
+        if (line == null) {
+            return "";
+        }
+        return line.length() <= MAX_LINE_LENGTH ? line : line.substring(0, MAX_LINE_LENGTH - 3) + "...";
     }
 
     public MessageDebugResponse(FriendlyByteBuf buffer) {
