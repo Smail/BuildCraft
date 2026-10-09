@@ -1,6 +1,7 @@
 //? source if >=26.3
 package buildcraft.robotics.entity;
 
+import buildcraft.api.v2.OperationMode;
 import buildcraft.api.v2.energy.MjAmount;
 import buildcraft.lib.internal.mj.MjFormatting;
 

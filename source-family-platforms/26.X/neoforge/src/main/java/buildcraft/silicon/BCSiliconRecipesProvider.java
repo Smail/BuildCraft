@@ -292,7 +292,7 @@ public class BCSiliconRecipesProvider extends RecipeProvider{
     private void makeGateAssembly(RecipeOutput writer, int multiplier, EnumGateMaterial material, EnumGateModifier modifier,
             EnumRedstoneChipset chipset, IngredientStack... additional) {
             ImmutableSet.Builder<IngredientStack> temp = ImmutableSet.builder();
-            temp.add(new IngredientStack(Ingredient.of(chipset.getStack())));
+            temp.add(new IngredientStack(buildcraft.lib.compat.IngredientCompat.of(chipset.getStack())));
             temp.add(additional);
             ImmutableSet<IngredientStack> input = temp.build();
 

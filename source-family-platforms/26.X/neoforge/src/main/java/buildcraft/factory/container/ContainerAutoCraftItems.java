@@ -36,7 +36,8 @@ public class ContainerAutoCraftItems extends ContainerBCTile<TileAutoWorkbenchIt
 	
 	ContainerAutoCraftItems(int containerId, Inventory playerInventory, int size, ContainerLevelAccess access){
 		this(containerId, playerInventory, new ItemHandlerSimple(1), new ItemHandlerSimple(size), 
-				new ItemHandlerSimple(size),new ItemHandlerSimple(size), new ItemHandlerSimple(1), access);
+				new ItemHandlerSimple(size),new ItemHandlerSimple(size),
+				new ItemProvider(i -> net.minecraft.world.item.ItemStack.EMPTY, 1), access);
 	}
 
     public ContainerAutoCraftItems(int containerId, Inventory player, IItemHandlerAdv invResult, IItemHandlerAdv invBlueprint, 
