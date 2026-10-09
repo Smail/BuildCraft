@@ -73,22 +73,6 @@ public class FluidRenderer {
         }
     }
 
-    private static Identifier getStillTextureSafe(Fluid fluid) {
-        return getFluidTextureSafe(
-            fluid, "still",
-            () -> fluidTexture(fluid, false),
-            MissingTextureAtlasSprite::getLocation
-        );
-    }
-
-    private static Identifier getFlowingTextureSafe(Fluid fluid) {
-        return getFluidTextureSafe(
-            fluid, "flowing",
-            () -> fluidTexture(fluid, true),
-            () -> getStillTextureSafe(fluid)
-        );
-    }
-
     private static Identifier getStillTextureSafe(Fluid fluid, FluidStack stack) {
         return getFluidTextureSafe(
             fluid, "still",
@@ -149,27 +133,17 @@ public class FluidRenderer {
         return stack == null ? tint.color(fluid.defaultFluidState()) : tint.colorAsStack(stack);
     }
 
-    /** Refreshes all fluid sprites after the 1.20 block atlas has been uploaded. */
+    /**
+     * Drops cached fluid sprites after the block atlas has been uploaded. The cache is not refilled here because the
+     * atlas is stitched before fluid models are baked, so {@link #fluidModel(Fluid)} would fail for every fluid.
+     * {@link #getSprite} refills entries lazily on first use, after the resource reload has finished.
+     */
     public static void onTextureStitchPost(ClientAtlas.After event) {
         if (!net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS.equals(event.getAtlas().location())) {
             return;
         }
         clearSpriteCache();
         blockTexMap = event.getAtlas()::getSprite;
-
-        for (Fluid fluid : BuiltInRegistries.FLUID) {
-            Identifier still = getStillTextureSafe(fluid);
-            Identifier flowing = getFlowingTextureSafe(fluid);
-            String key = fluid.getFluidType().getDescriptionId();
-            TextureAtlasSprite stillSprite = blockTexMap.apply(still);
-            fluidSprites.get(FluidSpriteType.STILL).put(key, stillSprite);
-            fluidSprites.get(FluidSpriteType.FLOWING).put(key, blockTexMap.apply(flowing));
-
-            // The legacy pre-stitch event was removed in 1.20, so dynamically injecting a generated frozen sprite into
-            // the block atlas is no longer supported. The frozen renderer still uses its repeated UV mapping, backed
-            // by the fluid's still sprite, which preserves the visual contract without private resource-manager hacks.
-            fluidSprites.get(FluidSpriteType.FROZEN).put(key, stillSprite);
-        }
     }
 
     private static void clearSpriteCache() {
@@ -434,6 +408,9 @@ public class FluidRenderer {
 			fluidSprites.get(type).put(key, tex);
 			break;
 		case FROZEN:
+			// The legacy pre-stitch event was removed in 1.20, so dynamically injecting a generated frozen sprite into
+			// the block atlas is no longer supported. The frozen renderer still uses its repeated UV mapping, backed
+			// by the fluid's still sprite, which preserves the visual contract without private resource-manager hacks.
 			if (tex == null) {
                 tex = blockTexMap.apply(getStillTextureSafe(fluid, stack));
             }
