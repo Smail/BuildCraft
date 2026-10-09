@@ -1,0 +1,54 @@
+package buildcraft.robotics.boards;
+
+import buildcraft.robotics.internal.legacy.boards.RedstoneBoardRobotNBT;
+import buildcraft.robotics.internal.legacy.robots.EntityRobotBase;
+import buildcraft.robotics.BCRoboticsBoards;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+
+import buildcraft.lib.compat.ItemCompat;
+
+/** Miner board that fetches a pickaxe and mines reachable ore blocks in the work zone. */
+public class BoardRobotMiner extends BoardRobotGenericBreakBlock {
+    public BoardRobotMiner(EntityRobotBase robot) {
+        super(robot);
+    }
+
+    public RedstoneBoardRobotNBT getNBTHandler() {
+        return BCRoboticsBoards.getByKey("miner").nbt();
+    }
+
+    public boolean isExpectedTool(ItemStack stack) {
+        return !stack.isEmpty()
+                && (ItemCompat.isPickaxe(stack));
+    }
+
+    public boolean isExpectedBlock(Level level, BlockPos pos) {
+        if (!level.isLoaded(pos)) {
+            return false;
+        }
+
+        BlockState state = level.getBlockState(pos);
+        if (state.isAir() || state.getDestroySpeed(level, pos) < 0.0F) {
+            return false;
+        }
+        if (!isOre(state)) {
+            return false;
+        }
+
+        ItemStack held = robot.getItemBySlot(EquipmentSlot.MAINHAND);
+        return isExpectedTool(held) && held.isCorrectToolForDrops(state);
+    }
+
+    private static boolean isOre(BlockState state) {
+        // Forge ore tags preserve OreDictionary-style "ore*" matching and keep modded ores compatible.
+        return state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("c:ores"))) || state.is(net.minecraft.tags.BlockItemTags.COAL_ORES.block()) || state.is(BlockTags.IRON_ORES)
+                || state.is(BlockTags.COPPER_ORES) || state.is(BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockItemTags.REDSTONE_ORES.block())
+                || state.is(net.minecraft.tags.BlockItemTags.EMERALD_ORES.block()) || state.is(net.minecraft.tags.BlockItemTags.LAPIS_ORES.block()) || state.is(net.minecraft.tags.BlockItemTags.DIAMOND_ORES.block());
+    }
+}
+

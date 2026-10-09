@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "buildcraft.lib.platform.runtime.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "OilTravelMixin",
+    "OilFireMixin",
+    "WaterGelStrengthMixin",
+    "WaterGelExplosionMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}
