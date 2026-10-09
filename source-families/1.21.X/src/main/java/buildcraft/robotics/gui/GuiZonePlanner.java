@@ -106,9 +106,14 @@ public class GuiZonePlanner extends GuiBC8<ContainerZonePlanner> {
     private ZonePlan renderedZonePlan;
 
     public GuiZonePlanner(ContainerZonePlanner container, Inventory inv, Component title) {
+        //? if >=26.3 {
+        /*super(container, inv, title, SIZE_X, SIZE_Y);
+        */
+        //?} else {
         super(container, inv, title);
         imageWidth = SIZE_X;
         imageHeight = SIZE_Y;
+        //?}
         if (container.tile != null) {
             BlockPos tilePos = container.tile.getBlockPos();
             centerX = tilePos.getX();
@@ -501,14 +506,26 @@ public class GuiZonePlanner extends GuiBC8<ContainerZonePlanner> {
     }
 
 
+    //? if >=26.3 {
+    /*public void extractContents(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    */
+    //?} else {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+    //?}
         if (!fullscreen) {
+            //? if >=26.3 {
+            /*super.extractContents(guiGraphics, mouseX, mouseY, partialTicks);
+            */
+            //?} else {
             super.render(guiGraphics, mouseX, mouseY, partialTicks);
+            //?}
             return;
         }
 
         drawForegroundLayer(guiGraphics, mouseX, mouseY);
+        //? if <26.3 {
         renderTooltip(guiGraphics, mouseX, mouseY);
+        //?}
     }
 
     protected void drawBackgroundLayer(PoseStack pose, int mouseX, int mouseY, float partialTicks) {

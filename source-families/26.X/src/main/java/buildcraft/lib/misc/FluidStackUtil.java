@@ -61,7 +61,7 @@ public final class FluidStackUtil {
             if (!parsed.isEmpty()) {
                 return parsed;
             }
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("FluidStackUtil.parseOptional", ignored);
             // Preserve the block entity by falling back to the registry id and amount.
         }
 

@@ -20,9 +20,14 @@ public class GuiRequester extends GuiBC8<ContainerRequester> {
     private static final GuiIcon ICON_GUI = new GuiIcon(TEXTURE_BASE, 0, 0, SIZE_X, SIZE_Y);
 
     public GuiRequester(ContainerRequester container, Inventory inv, Component title) {
+        //? if >=26.3 {
+        /*super(container, inv, title, SIZE_X, SIZE_Y);
+        */
+        //?} else {
         super(container, inv, title);
         imageWidth = SIZE_X;
         imageHeight = SIZE_Y;
+        //?}
 
         GuiHelpUtil.addSlots(mainGui, 9, 7, 4, 5,
                 "buildcraftrobotics.help.requester.templates.title",

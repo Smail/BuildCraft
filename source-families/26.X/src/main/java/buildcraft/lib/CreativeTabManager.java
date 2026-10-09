@@ -17,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import buildcraft.lib.internal.debug.BCLog;
 import buildcraft.lib.item.ICreativeTabItemProvider;
 import buildcraft.lib.misc.ItemStackKey;
 
@@ -351,13 +352,18 @@ public final class CreativeTabManager {
                             addUnique(items, seen, stack);
                         }
                     }
-                } catch (RuntimeException ignored) {
-                    // Optional integrations must not break creative-tab assembly.
+                } catch (RuntimeException | LinkageError e) {
+                    // Optional integrations must not break creative-tab assembly, but the failure must be visible.
+                    BCLog.logger.error("Creative tab '{}' item provider failed", name, e);
                 }
             }
             Map<String, Integer> order = ITEM_ORDERS.get(name);
             if (order != null) {
                 items.sort(Comparator.comparingInt(stack -> order.getOrDefault(getRegistryName(stack), Integer.MAX_VALUE)));
+            }
+            BCLog.logger.info("Creative tab '{}' assembled {} items from {} providers", name, items.size(), itemProviders.size());
+            if (items.isEmpty()) {
+                BCLog.logger.warn("Creative tab '{}' is empty and vanilla will hide it", name);
             }
             items.forEach(output);
         }

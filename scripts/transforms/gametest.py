@@ -120,6 +120,9 @@ def transform_gametest_source(text: str, *, minecraft: str, relative: str) -> st
         return text
     if "@GameTest(" not in text:
         return text
+    # Fabric API discovers its own annotation through the fabric-gametest entrypoint; nothing to register here.
+    if "import net.fabricmc.fabric.api.gametest.v1.GameTest;" in text:
+        return text
 
     package = _PACKAGE_RE.search(text)
     clazz = _CLASS_RE.search(text)

@@ -35,7 +35,7 @@ public final class SavedDataCompat {
             Files.createDirectories(current.getParent());
             try {
                 Files.move(legacy, current, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException ignored) {
+            } catch (AtomicMoveNotSupportedException ignored) { buildcraft.lib.internal.debug.BCLog.caught("SavedDataCompat.migrateLegacyFlatFile", ignored);
                 Files.move(legacy, current);
             }
             BCLog.logger.info("Migrated legacy SavedData {} to {}", legacy, current);

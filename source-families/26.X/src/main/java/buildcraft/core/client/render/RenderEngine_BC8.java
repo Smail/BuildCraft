@@ -429,11 +429,11 @@ public class RenderEngine_BC8 implements BlockEntityRenderer<TileEngineBase_BC8,
         try {
             TextureAtlasSprite result = RenderCompat.blockSprites().apply(id);
             if (result != null) return result;
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("RenderEngine_BC8.sprite", ignored);
         }
         try {
             return SpriteUtil.missingSprite();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("RenderEngine_BC8.sprite", ignored);
             return null;
         }
     }

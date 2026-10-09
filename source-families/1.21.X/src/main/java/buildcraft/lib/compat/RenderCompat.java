@@ -230,7 +230,7 @@ public final class RenderCompat {
             Method method = renderSystem.getMethod(methodName, parameterTypes);
             method.invoke(null, args);
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException |
-                 RuntimeException | LinkageError ignored) {
+                 RuntimeException | LinkageError ignored) { buildcraft.lib.internal.debug.BCLog.caught("RenderCompat.invokeRenderSystem", ignored);
         }
     }
 

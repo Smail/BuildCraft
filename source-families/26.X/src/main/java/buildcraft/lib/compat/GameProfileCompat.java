@@ -30,7 +30,7 @@ public final class GameProfileCompat {
             try {
                 Method method = profile.getClass().getMethod(methodName);
                 return method.invoke(profile);
-            } catch (ReflectiveOperationException ignored) {
+            } catch (ReflectiveOperationException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GameProfileCompat.call", ignored);
                 // Try the next spelling.
             }
         }

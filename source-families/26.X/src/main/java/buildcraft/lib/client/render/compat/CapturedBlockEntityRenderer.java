@@ -69,11 +69,15 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
     record Layer(RenderType type, List<Vertex> vertices) {}
 
     record Vertex(float x, float y, float z, int r, int g, int b, int a, float u, float v,
-        int overlayU, int overlayV, int lightU, int lightV, float nx, float ny, float nz, float width) {
-        void emit(PoseStack.Pose pose, VertexConsumer target) {
+        int overlayU, int overlayV, int lightU, int lightV, float nx, float ny, float nz, float width,
+        float uv3U, float uv3V) {
+        public void emit(PoseStack.Pose pose, VertexConsumer target) {
             target.addVertex(pose.pose(), x, y, z).setColor(r, g, b, a).setUv(u, v)
                 .setUv1(overlayU, overlayV).setUv2(lightU, lightV).setNormal(pose, nx, ny, nz)
                 .setLineWidth(width);
+            //? if >=26.3 {
+            target.setUv3(uv3U, uv3V);
+            //?}
         }
     }
 
@@ -84,12 +88,12 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
             return layers.computeIfAbsent(type, ignored -> new RecordingConsumer());
         }
 
-        List<Layer> finish() {
+        public List<Layer> finish() {
             List<Layer> result = new ArrayList<>();
             layers.forEach((type, consumer) -> {
-                consumer.endVertex();
-                if (!consumer.vertices.isEmpty()) {
-                    result.add(new Layer(type, List.copyOf(consumer.vertices)));
+                List<Vertex> vertices = consumer.finish();
+                if (!vertices.isEmpty()) {
+                    result.add(new Layer(type, vertices));
                 }
             });
             return List.copyOf(result);
@@ -99,15 +103,21 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
     final class RecordingConsumer implements VertexConsumer {
         private final List<Vertex> vertices = new ArrayList<>();
         private boolean active;
-        private float x, y, z, u, v, nx, ny, nz, width;
+        private float x, y, z, u, v, nx, ny, nz, width, uv3U, uv3V;
         private int r, g, b, a, overlayU, overlayV, lightU, lightV;
 
         private void endVertex() {
             if (active) {
                 vertices.add(new Vertex(x, y, z, r, g, b, a, u, v, overlayU, overlayV, lightU, lightV,
-                    nx, ny, nz, width));
+                    nx, ny, nz, width, uv3U, uv3V));
                 active = false;
             }
+        }
+
+        /** Completes the pending vertex and returns an immutable snapshot for deferred submission. */
+        public List<Vertex> finish() {
+            endVertex();
+            return List.copyOf(vertices);
         }
 
         public VertexConsumer addVertex(float x, float y, float z) {
@@ -116,6 +126,7 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
             r = g = b = a = 255;
             u = v = nx = nz = 0; ny = 1; width = 1;
             overlayU = overlayV = lightU = lightV = 0;
+            uv3U = uv3V = 0;
             active = true;
             return this;
         }
@@ -128,6 +139,7 @@ public interface CapturedBlockEntityRenderer<T extends BlockEntity>
         public VertexConsumer setUv(float u, float v) { this.u = u; this.v = v; return this; }
         public VertexConsumer setUv1(int u, int v) { overlayU = u; overlayV = v; return this; }
         public VertexConsumer setUv2(int u, int v) { lightU = u; lightV = v; return this; }
+        public VertexConsumer setUv3(float u, float v) { uv3U = u; uv3V = v; return this; }
         public VertexConsumer setNormal(float x, float y, float z) { nx = x; ny = y; nz = z; return this; }
         public VertexConsumer setLineWidth(float width) { this.width = width; return this; }
     }

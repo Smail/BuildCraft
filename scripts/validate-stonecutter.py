@@ -43,6 +43,11 @@ NEOFORGE_REQUIRED = (
     "minecraft.version_range", "buildcraft.version_range", "compat.jei.range",
     "compat.jade.range", "compat.ic2.range", "compat.forestry.range",
 )
+FABRIC_REQUIRED = (
+    "deps.fabric_loader", "deps.fabric_api", "loader.version_range",
+    "minecraft.version_range", "buildcraft.version_range", "compat.jei.range",
+    "compat.jade.range",
+)
 
 
 def fail(message: str) -> None:
@@ -178,8 +183,22 @@ def validate_build_root(generation: str, build_root: Path, targets: list[str], p
         elif loader == "neoforge":
             if "id 'net.neoforged.moddev'" not in wrapper_text:
                 fail("NeoForge build must resolve ModDevGradle in its build-root shim")
+        elif loader == "fabric":
+            if "id 'net.fabricmc.fabric-loom'" not in wrapper_text:
+                fail("Fabric build must resolve Loom in its build-root shim")
+            for token in ("compileApiV2Java", "compileAddonFixtureJava", "fabricApi.configureTests"):
+                if token not in adapter_text:
+                    fail(f"Fabric adapter lacks {token!r}")
+            if "mappings " in adapter_text:
+                fail("Minecraft 26.3 Fabric uses unobfuscated names; do not add legacy mappings")
+            if tuple(int(part) for part in gradle.split(".")[:2]) < (9, 7):
+                fail(f"Loom 1.18 requires Gradle 9.7+, got {gradle}")
 
-        required = TARGET_REQUIRED + (FORGE_REQUIRED if loader == "forge" else NEOFORGE_REQUIRED if loader == "neoforge" else ())
+        required = TARGET_REQUIRED + {
+            "forge": FORGE_REQUIRED,
+            "neoforge": NEOFORGE_REQUIRED,
+            "fabric": FABRIC_REQUIRED,
+        }.get(loader, ())
         for key in required:
             value(props, target, key)
         if value(props, target, "source.family") != generation:

@@ -18,7 +18,7 @@ public final class FluidIngredient {
             try {
                 FluidVariant variant = FluidVariant.CODEC.decode(data.variant()).valueOrThrow();
                 return CodecResult.success(exact(variant, data.milliBuckets()));
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("FluidIngredient.decode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }

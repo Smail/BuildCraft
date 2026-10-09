@@ -85,7 +85,7 @@ public final class PipeServiceImpl implements PipeService {
         final PipeAttachment attachment;
         try {
             attachment = type.create(new PipeAttachmentPlacementContext(pipe, side, stack, actor, mode));
-        } catch (RuntimeException ex) {
+        } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("PipeServiceImpl.placeAttachment", ex);
             return PipeAttachmentResult.failure("attachment_factory_failed:" + ex.getClass().getSimpleName());
         }
         if (!(attachment instanceof LegacyPipeAttachmentView legacy)) {

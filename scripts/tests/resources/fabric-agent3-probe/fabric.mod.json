@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "buildcraft_agent3_native_probe",
+  "version": "1.0.0",
+  "name": "BuildCraft native fluid probe",
+  "environment": "server",
+  "entrypoints": { "main": ["probe.Agent3NativeProbeEntrypoint"] },
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "=26.3", "fabric-transfer-api-v1": "*" }
+}

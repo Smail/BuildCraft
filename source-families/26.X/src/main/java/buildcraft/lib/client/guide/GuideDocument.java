@@ -246,7 +246,7 @@ public final class GuideDocument {
         if (value == null) return fallback;
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuideDocument.parseInt", ignored);
             return fallback;
         }
     }

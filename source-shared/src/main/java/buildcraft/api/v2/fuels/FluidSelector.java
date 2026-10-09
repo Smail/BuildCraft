@@ -29,7 +29,7 @@ public final class FluidSelector implements FluidMatcher {
                         yield FluidVariant.CODEC.decode(payload.variant()).map(FluidSelector::exact);
                     }
                 };
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("FluidSelector.decode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }

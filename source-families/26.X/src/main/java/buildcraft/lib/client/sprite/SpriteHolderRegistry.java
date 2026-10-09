@@ -78,7 +78,7 @@ public final class SpriteHolderRegistry {
         for (String className : BUILTIN_HOLDER_CLASSES) {
             try {
                 Class.forName(className, true, loader);
-            } catch (ClassNotFoundException ignored) {
+            } catch (ClassNotFoundException ignored) { buildcraft.lib.internal.debug.BCLog.caught("SpriteHolderRegistry.bootstrapBuiltinHolders", ignored);
                 // BuildCraft modules are optional.
             } catch (LinkageError | RuntimeException error) {
                 BCLog.logger.error("[lib.sprite.holder] Failed to initialise sprite holder class " + className, error);

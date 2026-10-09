@@ -13,8 +13,25 @@ public final class BCLog {
     public static final Logger logger = LogManager.getLogger("BuildCraft");
     									//LogUtils.getLogger();
     
+    private static final java.util.Set<String> CAUGHT_CONTEXTS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     /** Deactivate constructor */
     private BCLog() {}
+
+    /**
+     * Logs an exception that was caught and handled. The first occurrence per context is logged at WARN with the
+     * stack trace; repeats are logged at DEBUG so per-frame or per-block paths cannot flood the log.
+     */
+    public static void caught(String context, Throwable error) {
+        if (context == null) {
+            context = "unknown";
+        }
+        if (CAUGHT_CONTEXTS.add(context)) {
+            logger.warn("Caught exception in {} (repeats are logged at DEBUG)", context, error);
+        } else {
+            logger.debug("Caught exception in {}", context, error);
+        }
+    }
 
     @Deprecated
     public static void logErrorAPI(String mod, Throwable error, Class<?> classFile) {

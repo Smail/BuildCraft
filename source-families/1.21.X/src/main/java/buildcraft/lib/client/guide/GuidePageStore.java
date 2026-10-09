@@ -164,7 +164,7 @@ final class GuidePageStore {
             int index;
             try {
                 index = Integer.parseInt(matcher.group(1));
-            } catch (NumberFormatException ignored) {
+            } catch (NumberFormatException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuidePageStore.renderTemplate", ignored);
                 index = -1;
             }
             String replacement = index >= 0 && index < values.size() && values.get(index) != null

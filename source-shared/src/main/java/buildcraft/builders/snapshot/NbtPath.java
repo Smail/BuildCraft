@@ -69,7 +69,7 @@ public class NbtPath {
             int key;
             try {
                 key = Integer.parseInt(elements.get(index));
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException e) { buildcraft.lib.internal.debug.BCLog.caught("NbtPath.remove", e);
                 return;
             }
             if (key >= 0 && key < listTag.size()) {
@@ -131,7 +131,7 @@ public class NbtPath {
             int key;
             try {
                 key = Integer.parseInt(elements.get(0));
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException e) { buildcraft.lib.internal.debug.BCLog.caught("NbtPath.get", e);
                 return NBTUtilBC.NBT_NULL;
             }
             if (key >= 0 && key < tag.getAsByteArray().length) {
@@ -159,7 +159,7 @@ public class NbtPath {
             int key;
             try {
                 key = Integer.parseInt(elements.get(0));
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException e) { buildcraft.lib.internal.debug.BCLog.caught("NbtPath.get", e);
                 return NBTUtilBC.NBT_NULL;
             }
             if (key >= 0 && key < tag.size()) {
@@ -192,7 +192,7 @@ public class NbtPath {
             int key;
             try {
                 key = Integer.parseInt(elements.get(0));
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException e) { buildcraft.lib.internal.debug.BCLog.caught("NbtPath.get", e);
                 return NBTUtilBC.NBT_NULL;
             }
             if (key >= 0 && key < tag.getAsIntArray().length) {

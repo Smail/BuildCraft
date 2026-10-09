@@ -48,7 +48,7 @@ final class GuideBookStateCodec {
         if (document && tag.contains(TAG_ENTRY)) {
             try {
                 entry = Identifier.parse(NbtCompat.getString(tag, TAG_ENTRY));
-            } catch (RuntimeException ignored) {
+            } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuideBookStateCodec.read", ignored);
                 document = false;
             }
         }

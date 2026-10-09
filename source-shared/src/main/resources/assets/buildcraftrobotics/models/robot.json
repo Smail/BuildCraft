@@ -4,6 +4,9 @@
     32
   ],
   "gui_light": "front",
+  "textures": {
+    "particle": "#all"
+  },
   "elements": [
     {
       "name": "robot_body",

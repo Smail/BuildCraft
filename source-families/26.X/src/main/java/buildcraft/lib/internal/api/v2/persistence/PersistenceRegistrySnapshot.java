@@ -88,7 +88,7 @@ public final class PersistenceRegistrySnapshot<T, P> {
         CodecResult<T> decoded;
         try {
             decoded = Objects.requireNonNull(type.codec().decode(migrated), "codec.decode result");
-        } catch (RuntimeException ex) {
+        } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("PersistenceRegistrySnapshot.decode", ex);
             return unknown(storedId, storedVersion, original, UnknownPayloadReason.DECODE_FAILED,
                 List.of("Codec threw while decoding " + canonical + ": " + safeMessage(ex)));
         }
@@ -109,7 +109,7 @@ public final class PersistenceRegistrySnapshot<T, P> {
         CodecResult<P> encoded;
         try {
             encoded = Objects.requireNonNull(type.codec().encode(value), "codec.encode result");
-        } catch (RuntimeException ex) {
+        } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("PersistenceRegistrySnapshot.encode", ex);
             return CodecResult.failure("Codec threw while encoding " + canonical + ": " + safeMessage(ex));
         }
         if (!encoded.successful()) {
@@ -137,7 +137,7 @@ public final class PersistenceRegistrySnapshot<T, P> {
             CodecResult<P> migrated;
             try {
                 migrated = Objects.requireNonNull(migration.migrate(payload), "migration result");
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("PersistenceRegistrySnapshot.migrate", ex);
                 return MigrationOutcome.failure(
                     UnknownPayloadReason.MIGRATION_FAILED,
                     List.of("Migration " + version + " -> " + migration.toVersion() + " for " + type.id() + " threw: " + safeMessage(ex))

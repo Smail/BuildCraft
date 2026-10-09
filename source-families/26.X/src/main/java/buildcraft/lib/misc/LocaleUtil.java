@@ -102,7 +102,7 @@ public class LocaleUtil {
         }
         try {
             return String.format(localized, args);
-        } catch (IllegalFormatException ife) {
+        } catch (IllegalFormatException ife) { buildcraft.lib.internal.debug.BCLog.caught("LocaleUtil.localize", ife);
             return "Bad Format: " + ife.getMessage();
         }
     }

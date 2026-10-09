@@ -1,7 +1,8 @@
 package buildcraft.lib.platform.storage;
+
 import net.minecraft.world.item.ItemStack;
 
-/** Optional direct mutation for restoration; never inferred from ordinary insert/extract support. */
+/** Slot storage whose owner permits restoring exact contents during rollback. */
 public interface MutableItemStorage extends ItemStorage {
     void setStackInSlot(int slot, ItemStack stack);
 }

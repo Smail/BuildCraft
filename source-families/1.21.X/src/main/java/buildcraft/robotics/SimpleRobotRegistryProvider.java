@@ -66,7 +66,12 @@ public enum SimpleRobotRegistryProvider implements IRobotRegistryProvider {
             SimpleRobotRegistry::toTag
         );
         private static final SavedDataType<SimpleRobotRegistry> TYPE = new SavedDataType<>(
+            //? if >=26.3 {
+            /*net.minecraft.resources.Identifier.withDefaultNamespace(DATA_NAME),
+            */
+            //?} else {
             DATA_NAME,
+            //?}
             SimpleRobotRegistry::new,
             CODEC,
             null
@@ -418,7 +423,12 @@ public enum SimpleRobotRegistryProvider implements IRobotRegistryProvider {
                 if (station == null) {
                     continue;
                 }
+                //? if >=26.3 {
+                /*ChunkPos stationChunk = ChunkPos.containing(new BlockPos(station.x(), station.y(), station.z()));
+                */
+                //?} else {
                 ChunkPos stationChunk = new ChunkPos(new BlockPos(station.x(), station.y(), station.z()));
+                //?}
                 if (chunkPos.equals(stationChunk)) {
                     station.onChunkUnload();
                 }

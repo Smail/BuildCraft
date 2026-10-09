@@ -28,6 +28,8 @@ public abstract class BCBlockEntity extends BlockEntity {
     protected void writeCommonData(BCValueOutput output) {}
     protected void readData(BCValueInput input) {}
     protected void writeData(BCValueOutput output) {}
+    /** Called after {@link #readCommonData} and {@link #readData} with the full root tag of a loaded block entity. */
+    protected void afterAdditionalLoad(BCValueInput common) {}
     protected boolean storesMachineDataAtRoot() { return false; }
     protected boolean requiresPersistenceRegistries() { return true; }
 
@@ -42,6 +44,7 @@ public abstract class BCBlockEntity extends BlockEntity {
         } else {
             common.findCompound(MACHINE_DATA).ifPresent(tag -> readData(new BCValueInput(tag, persistenceRegistries)));
         }
+        afterAdditionalLoad(common);
     }
 
     protected final void saveAdditional(ValueOutput output) {

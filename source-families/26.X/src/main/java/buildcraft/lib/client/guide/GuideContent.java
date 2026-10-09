@@ -340,7 +340,7 @@ public final class GuideContent {
         Identifier id;
         try {
             id = Identifier.parse(remappedId);
-        } catch (RuntimeException ex) {
+        } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("GuideContent.resolveStackForTag", ex);
             return ItemStack.EMPTY;
         }
         Item item = BuiltInRegistries.ITEM.get(id).map(net.minecraft.core.Holder.Reference::value).orElse(net.minecraft.world.item.Items.AIR);
@@ -457,7 +457,7 @@ public final class GuideContent {
         if (value == null) return fallback;
         try {
             return Integer.parseInt(value.trim());
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuideContent.parseInt", ignored);
             return fallback;
         }
     }
@@ -484,7 +484,7 @@ public final class GuideContent {
     public Entry get(String id) {
         try {
             return get(Identifier.parse(id));
-        } catch (RuntimeException ex) {
+        } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("GuideContent.get", ex);
             return null;
         }
     }
@@ -664,7 +664,7 @@ public final class GuideContent {
                     return id.getAsString();
                 }
             }
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuideContent.guideEntryDebugName", ignored);
             // Diagnostics must never mask the original guide-entry error.
         }
         return "<unknown>";

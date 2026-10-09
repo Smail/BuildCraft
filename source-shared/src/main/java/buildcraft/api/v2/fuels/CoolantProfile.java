@@ -18,7 +18,7 @@ public final class CoolantProfile implements EnergyFluidDefinition {
             if (!selector.successful()) return CodecResult.failure(String.join("; ", selector.errors()));
             try {
                 return CodecResult.success(CoolantProfile.constant(selector.valueOrThrow(), data.degreesPerMilliBucket()));
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("CoolantProfile.decode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }

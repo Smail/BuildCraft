@@ -23,7 +23,7 @@ public final class DistillationRecipeDefinition implements RecipeDefinition {
                     volume(data.liquidVariant(), data.liquidMilliBuckets()),
                     data.powerRequiredMicroMj()
                 ));
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("DistillationRecipeDefinition.decode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }
@@ -40,7 +40,7 @@ public final class DistillationRecipeDefinition implements RecipeDefinition {
                     variant(value.liquidOutput), value.liquidOutput.amount().milliBuckets(),
                     value.powerRequiredMicroMj
                 ));
-            } catch (RuntimeException ex) {
+            } catch (RuntimeException ex) { buildcraft.lib.internal.debug.BCLog.caught("DistillationRecipeDefinition.encode", ex);
                 return CodecResult.failure(safeMessage(ex));
             }
         }
