@@ -49,6 +49,20 @@ public final class BakedQuadCompat {
             shadeOverride(shade), lightEmission, ambientOcclusion);
     }
 
+    /**
+     * The native 26.3 {@code MaterialInfo} constructor. The symbol rewrite redirects every {@code new MaterialInfo(...)}
+     * here, so sources that already use the native shape must keep compiling.
+     */
+    public static BakedQuad.MaterialInfo materialInfo(TextureAtlasSprite sprite, ChunkSectionLayer layer,
+        RenderType itemRenderType, RenderType glint, RenderType glintSpecial, int tintIndex,
+        @Nullable Direction shadeDirectionOverride, int lightEmission, boolean ambientOcclusion) {
+        Objects.requireNonNull(sprite, "sprite");
+        Objects.requireNonNull(layer, "layer");
+        Objects.requireNonNull(itemRenderType, "itemRenderType");
+        return new BakedQuad.MaterialInfo(sprite, layer, itemRenderType, glint, glintSpecial, tintIndex,
+            shadeDirectionOverride, lightEmission, ambientOcclusion);
+    }
+
     /** @return whether the material is shaded by its own face, the pre-26.3 {@code shade} flag */
     public static boolean shade(BakedQuad.MaterialInfo material) {
         Objects.requireNonNull(material, "material");

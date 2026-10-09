@@ -58,6 +58,12 @@ NEOFORGE_263_LEGACY_STORAGE_RELOCATIONS = (
     ("net.neoforged.neoforge.fluids.capability.", "buildcraft.lib.compat.neoforge263.fluids.capability."),
     ("net.neoforged.neoforge.fluids.FluidUtil", "buildcraft.lib.compat.neoforge263.fluids.FluidUtil"),
     ("net.neoforged.neoforge.fluids.IFluidTank", "buildcraft.lib.compat.neoforge263.fluids.IFluidTank"),
+    # The >=26.3 transport sources use a family-owned FluidAction, but IMjReceiver and the lib power API are still
+    # declared against the legacy handler enum. Collapse both onto the shim enum so they share one type.
+    (
+        "buildcraft.transport.internal.pipe.FluidAction",
+        "buildcraft.lib.compat.neoforge263.fluids.capability.IFluidHandler.FluidAction",
+    ),
 )
 
 
