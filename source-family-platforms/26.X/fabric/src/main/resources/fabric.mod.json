@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "buildcraft",
+  "version": "${mod_version}",
+  "name": "BuildCraft Community Edition",
+  "description": "Machines, pipes, automation and construction for Minecraft.",
+  "license": "${mod_license}",
+  "environment": "*",
+  "accessWidener": "buildcraft.accesswidener",
+  "provides": ["buildcraftlib", "buildcraftcore", "buildcraftbuilders", "buildcraftenergy", "buildcraftfactory", "buildcraftrobotics", "buildcraftsilicon", "buildcrafttransport"],
+  "entrypoints": {
+    "main": ["buildcraft.BuildCraftFabric"],
+    "client": ["buildcraft.lib.client.BuildCraftFabricClient"],
+    "buildcraft:module": ["buildcraft.lib.BCLib", "buildcraft.core.BCCore", "buildcraft.builders.BCBuilders", "buildcraft.energy.BCEnergy", "buildcraft.factory.BCFactory", "buildcraft.robotics.BCRobotics", "buildcraft.silicon.BCSilicon", "buildcraft.transport.BCTransport"],
+    "buildcraft:platform_services": ["buildcraft.lib.internal.api.v2.platform.FabricPlatformServices"],
+    "buildcraft:storage_registration": ["buildcraft.lib.platform.capability.FabricStorageRegistration"]
+  },
+  "mixins": ["buildcraft.fabric.events.mixins.json", "buildcraft.fabric.client.mixins.json", "buildcraft.fabric.runtime.mixins.json"],
+  "depends": {
+    "fabricloader": "${loader_version_range}",
+    "minecraft": "${minecraft_version_range}",
+    "java": ">=25",
+    "fabric-api": "*",
+    "team_reborn_energy": ">=5.0.0"
+  }
+}

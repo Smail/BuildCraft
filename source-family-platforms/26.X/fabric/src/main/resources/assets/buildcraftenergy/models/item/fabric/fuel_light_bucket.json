@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "buildcraftenergy:items/fuel_light_bucket",
+    "particle": "buildcraftenergy:items/fuel_light_bucket"
+  }
+}
