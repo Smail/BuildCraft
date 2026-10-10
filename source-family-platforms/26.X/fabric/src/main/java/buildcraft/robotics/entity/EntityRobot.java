@@ -1041,7 +1041,7 @@ public class EntityRobot extends EntityRobotBase {
             if (!level().isClientSide()) {
                 wearables.add(stack.split(1));
             } else {
-                player.swing(hand, player.getItemInHand(hand).getInteractAnimation(), false);
+                player.swing(hand);
             }
             return (level().isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER);
         }

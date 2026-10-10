@@ -100,11 +100,19 @@ public final class NativeItemModelBuilder {
                 }
             });
             if (foil) {
+//? if >=26.3 {
                 RenderType glint = renderType.hasBlending()
                     ? net.minecraft.client.renderer.rendertype.RenderTypes.itemTranslucentGlint(
                         net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
                     : net.minecraft.client.renderer.rendertype.RenderTypes.itemCutoutGlint(
                         net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS);
+//?} else {
+/*?
+                RenderType glint = renderType.hasBlending()
+                    ? net.minecraft.client.renderer.rendertype.RenderTypes.glintTranslucent()
+                    : net.minecraft.client.renderer.rendertype.RenderTypes.glint();
+?*/
+//?}
                 collector.submitCustomGeometry(pose, glint, (capturedPose, vertices) -> {
                     for (MutableQuad quad : submitted) {
                         quad.render(capturedPose.pose(), capturedPose.normal(), vertices);

@@ -46,9 +46,9 @@ public class BoardRobotMiner extends BoardRobotGenericBreakBlock {
 
     private static boolean isOre(BlockState state) {
         // Forge ore tags preserve OreDictionary-style "ore*" matching and keep modded ores compatible.
-        return state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("c:ores"))) || state.is(net.minecraft.tags.BlockItemTags.COAL_ORES.block()) || state.is(BlockTags.IRON_ORES)
-                || state.is(BlockTags.COPPER_ORES) || state.is(BlockTags.GOLD_ORES) || state.is(net.minecraft.tags.BlockItemTags.REDSTONE_ORES.block())
-                || state.is(net.minecraft.tags.BlockItemTags.EMERALD_ORES.block()) || state.is(net.minecraft.tags.BlockItemTags.LAPIS_ORES.block()) || state.is(net.minecraft.tags.BlockItemTags.DIAMOND_ORES.block());
+        return state.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.Identifier.parse("c:ores"))) || state.is(BlockTags.COAL_ORES) || state.is(BlockTags.IRON_ORES)
+                || state.is(BlockTags.COPPER_ORES) || state.is(BlockTags.GOLD_ORES) || state.is(BlockTags.REDSTONE_ORES)
+                || state.is(BlockTags.EMERALD_ORES) || state.is(BlockTags.LAPIS_ORES) || state.is(BlockTags.DIAMOND_ORES);
     }
 }
 

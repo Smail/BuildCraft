@@ -1,3 +1,4 @@
+//? source if >=26.2
 /*
  * Copyright (c) 2026 the BuildCraft team
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.

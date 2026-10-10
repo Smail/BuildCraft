@@ -209,7 +209,7 @@ public abstract class BCFluid extends FlowingFluid {
 					|| !p_75975_.getFluidState().isEmpty()) {
 				return false;
 			}
-		return !buildcraft.lib.compat.mc263.BlockStateCompat.blocksMotion(p_75975_);
+		return !p_75975_.blocksMotion();
 		} else {
 			return false;
 		}

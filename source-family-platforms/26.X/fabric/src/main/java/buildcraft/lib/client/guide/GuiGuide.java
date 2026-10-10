@@ -28,6 +28,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.util.Util;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -220,7 +221,7 @@ public final class GuiGuide extends Screen {
     }
 
     public static void open(ItemStack guideStack, InteractionHand hand) {
-        Minecraft.getInstance().gui.setScreen(new GuiGuide(guideStack, hand));
+        Minecraft.getInstance().setScreen(new GuiGuide(guideStack, hand));
     }
 
     protected void init() {
@@ -1110,7 +1111,7 @@ public final class GuiGuide extends Screen {
         if (target == null || target.isEmpty()) return;
         if (target.startsWith("http://") || target.startsWith("https://")) {
             try {
-                com.mojang.blaze3d.Blaze3D.openUri(new URI(target));
+                Util.getPlatform().openUri(new URI(target));
             } catch (Exception ignored) { buildcraft.lib.internal.debug.BCLog.caught("GuiGuide.followTarget", ignored);
             }
             return;
@@ -1777,7 +1778,7 @@ public final class GuiGuide extends Screen {
             onClose();
             return true;
         }
-        if (keyPressed(event.key(), event.keycode(), event.modifiers())) {
+        if (keyPressed(event.key(), event.scancode(), event.modifiers())) {
             return true;
         }
         return super.keyPressed(event);

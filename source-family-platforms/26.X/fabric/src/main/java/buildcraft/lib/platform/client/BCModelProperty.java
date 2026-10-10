@@ -1,4 +1,4 @@
-//? source if >=26.3
+//? source if >=26.1
 package buildcraft.lib.platform.client;
 
 /** Identity key for a value stored in {@link BCModelData}. */

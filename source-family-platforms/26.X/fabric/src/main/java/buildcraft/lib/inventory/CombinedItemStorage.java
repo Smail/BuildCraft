@@ -1,4 +1,4 @@
-//? source if >=26.3
+//? source if >=26.1
 /*
  * Copyright (c) 2026 the BuildCraft Community Edition contributors
  * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not

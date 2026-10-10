@@ -223,7 +223,9 @@ public final class BuildCraftFabricClient implements ClientModInitializer {
             BCSiliconClientRenderers.register(renderers);
             BCSiliconItems.registerItemModelProperties(ranges);
             PlatformClientModels.registerReplacements(BCSiliconModels::onModelBake);
+//? if >=26.2 {
             buildcraft.silicon.client.render.SiliconDebugGeometry263.register();
+//?}
         }
         if (BCModules.ROBOTICS.isLoaded()) {
             BCRoboticsSprites.preInit();

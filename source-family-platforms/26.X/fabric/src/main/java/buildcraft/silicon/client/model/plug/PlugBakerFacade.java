@@ -166,7 +166,13 @@ public enum PlugBakerFacade implements IPluggableStaticBaker<KeyPlugFacade> {
         // through PipeBlockColours/PluggableFacade at the real pipe position; baking it with a null world makes
         // leaves/grass gray and also makes the cached geometry biome-independent in the wrong way.
         var material = quad.materialInfo();
+//? if >=26.3 {
         MutableQuad mutable = new MutableQuad(material.tintIndex(), quad.direction(), material.shadeDirectionOverride() != null);
+//?} else {
+/*?
+        MutableQuad mutable = new MutableQuad(material.tintIndex(), quad.direction(), material.shade());
+?*/
+//?}
         mutable.setSprite(material.sprite());
 
         for (int i = 0; i < 4; i++) {

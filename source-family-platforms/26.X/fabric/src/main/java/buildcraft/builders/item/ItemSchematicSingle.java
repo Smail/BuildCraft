@@ -156,7 +156,7 @@ public class ItemSchematicSingle extends Item {
                                 }
                                 fillDeferredInventory(schematicBlock, world, placePos, itemTransactor, player);
                                 SoundUtil.playBlockPlace(world, placePos);
-                                player.swing(context.getHand(), player.getItemInHand(context.getHand()).getInteractAnimation(), false);
+                                player.swing(context.getHand());
                                 return InteractionResult.SUCCESS;
                             }
                         } else {
@@ -227,7 +227,7 @@ public class ItemSchematicSingle extends Item {
                     if (!refundRemainder.isEmpty()) {
                         // A nonstandard handler may accept less than it advertised during simulation. If the
                         // player's inventory filled in the meantime, drop the exact remainder instead of deleting it.
-                        player.drop(refundRemainder, false, net.minecraft.util.Prediction.SERVER_ONLY);
+                        player.drop(refundRemainder, false);
                     }
                 }
                 if (inserted <= 0) {
@@ -250,7 +250,7 @@ public class ItemSchematicSingle extends Item {
         stack.shrink(1);
 
         if (!player.getInventory().add(recorded)) {
-            player.drop(recorded, false, net.minecraft.util.Prediction.SERVER_ONLY);
+            player.drop(recorded, false);
         }
         return InteractionResult.SUCCESS;
     }

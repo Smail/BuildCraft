@@ -191,7 +191,7 @@ public final class BCEnergyFluids {
                 .strength(100.0F)
                 .noLootTable()
                 .liquid()
-                .pushReaction(PushReaction.POPPED),
+                .pushReaction(PushReaction.DESTROY),
             sticky,
             igniteOdds,
             burnOdds
@@ -225,7 +225,7 @@ public final class BCEnergyFluids {
                 .strength(100.0F)
                 .noLootTable()
                 .liquid()
-                .pushReaction(PushReaction.POPPED),
+                .pushReaction(PushReaction.DESTROY),
             true, 10, 40
         ));
         BCFluid.Properties properties = new BCFluid.Properties(OIL_TYPE.get(0), source, flowing)
