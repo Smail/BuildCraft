@@ -73,6 +73,13 @@ the test mod ID is `buildcraft_gametest`. Each run has its own directory under
 `run/26.3-fabric`. Release support, CI publishing and gameplay smoke validation
 remain pending until the complete Fabric runtime compiles and runs.
 
+`26.1.2-fabric` reuses the 26.3 Fabric sources. Selectors and inline `//? if`
+conditions keep the 26.3-only code paths (submit-node geometry capture, the
+`mc263` shims) out of the 26.1.2 build, and the 26.X transforms rewrite the
+remaining 26.3 API names back to 26.1.2. Files that cannot be shared live in
+`version-src/26.1.2-fabric`. It uses Fabric API 0.155.3+26.1.2 and is not a
+release-supported target yet. Compile-only so far; no game or GameTest run.
+
 ## Repository layout
 
 ```text
