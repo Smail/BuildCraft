@@ -2,7 +2,7 @@ package buildcraft.lib.platform.client;
 import java.util.Objects;
 import java.util.function.Function;
 import net.minecraft.client.resources.model.ModelManager;
-//? if >=26.3 {
+//? if >=26.1 {
 import net.minecraft.client.resources.model.geometry.QuadCollection;
 //?} else {
 /*?
