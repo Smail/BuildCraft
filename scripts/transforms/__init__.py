@@ -24,7 +24,7 @@ def apply_text_transforms(
         text = downport_symbols(text, minecraft=minecraft, relative=relative)
     text = upgrade_lib_symbols(text, minecraft=minecraft, relative=relative)
     text = upgrade_263_symbols(text, minecraft=minecraft, relative=relative)
-    text = upgrade_fabric_symbols(text, platform=platform, relative=relative)
+    text = upgrade_fabric_symbols(text, minecraft=minecraft, platform=platform, relative=relative)
     text = transform_gametest_source(text, minecraft=minecraft, relative=relative)
     return apply_resource_transforms(text, minecraft=minecraft, relative=relative)
 

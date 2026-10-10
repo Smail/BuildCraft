@@ -545,10 +545,6 @@ _CONTAINER_SCREEN_GETTERS_263 = (
 
 
 def _rewrite_263_client_gui(text: str) -> str:
-    if "GuiGraphicsExtractor" in text:
-        for old, new in (("drawString", "text"), ("renderItemDecorations", "itemDecorations"), ("renderItem", "item")):
-            text = re.sub(r"\bguiGraphics\." + old + r"\(", "guiGraphics." + new + "(", text)
-    text = re.sub(r"new (net\.minecraft\.client\.input\.)?CharacterEvent\(codePoint, modifiers\)", r"new \1CharacterEvent(codePoint)", text)
     for old, new in _CONTAINER_SCREEN_GETTERS_263:
         text = re.sub(rf"(\.|::){old}\b", rf"\g<1>{new}", text)
     if "org.lwjgl.glfw.GLFW" in text:
@@ -621,6 +617,30 @@ def _rewrite_263_misc_api(text: str) -> str:
     return text
 
 
+def _rewrite_261_chunk_pos(text: str) -> str:
+    """ChunkPos became a record in 26.1. Only rewrite receivers declared with that type."""
+    chunk_receivers = set(re.findall(r"\bChunkPos\s+([A-Za-z_$][\w$]*)", text))
+    # Imported aggregate fields and inferred lambda parameters use the same conventional name.
+    chunk_receivers.add("chunkPos")
+    for receiver in chunk_receivers:
+        text = re.sub(r"\b" + re.escape(receiver) + r"\.(x|z)\b(?!\s*\()", r"" + receiver + r".\1()", text)
+    block_receivers = set(re.findall(r"\bBlockPos\s+([A-Za-z_$][\w$]*)", text))
+    for receiver in block_receivers:
+        text = re.sub(r"new ChunkPos\(" + re.escape(receiver) + r"\)", "ChunkPos.containing(" + receiver + ")", text)
+    text = re.sub(r"new ChunkPos\(([\w.]+\.getBlockPos\(\))\)", r"ChunkPos.containing(\1)", text)
+    return text
+
+
+def _rewrite_261_gui_extractor(text: str) -> str:
+    """GuiGraphicsExtractor renamed its draw helpers in 26.1 and CharacterEvent lost its modifiers."""
+    if "GuiGraphicsExtractor" in text:
+        for old, new in (("drawString", "text"), ("renderItemDecorations", "itemDecorations"), ("renderItem", "item")):
+            text = re.sub(r"\bguiGraphics\." + old + r"\(", "guiGraphics." + new + "(", text)
+    return re.sub(
+        r"new (net\.minecraft\.client\.input\.)?CharacterEvent\(codePoint, modifiers\)", r"new \1CharacterEvent(codePoint)", text
+    )
+
+
 def upgrade_263_symbols(text: str, *, minecraft: str, relative: str) -> str:
     """Apply mechanical Minecraft/NeoForge 26.3 API renames.
 
@@ -628,7 +648,12 @@ def upgrade_263_symbols(text: str, *, minecraft: str, relative: str) -> str:
     variant native to an older Minecraft API (e.g. ``>=1.21.11``) is still selected
     on 26.3, where the removed packages no longer exist at all.
     """
-    if not relative.endswith(".java") or _version_tuple(minecraft) < _version_tuple("26.3"):
+    if not relative.endswith(".java"):
+        return text
+    if _version_tuple(minecraft) >= _version_tuple("26.1"):
+        text = _rewrite_261_chunk_pos(text)
+        text = _rewrite_261_gui_extractor(text)
+    if _version_tuple(minecraft) < _version_tuple("26.3"):
         return text
     for before, after in (
         ("ClickType", "ContainerInput"),
@@ -639,16 +664,6 @@ def upgrade_263_symbols(text: str, *, minecraft: str, relative: str) -> str:
         if re.search(r"import net\.minecraft\.[\w.]+\." + before + r";", text):
             text = re.sub(r"\b" + before + r"\b", after, text)
     text = text.replace("net.minecraft.client.renderer.LightCoordsUtil", "net.minecraft.util.LightCoordsUtil")
-    # ChunkPos became a record. Only rewrite receivers declared with that type.
-    chunk_receivers = set(re.findall(r"\bChunkPos\s+([A-Za-z_$][\w$]*)", text))
-    # Imported aggregate fields and inferred lambda parameters use the same conventional name.
-    chunk_receivers.add("chunkPos")
-    for receiver in chunk_receivers:
-        text = re.sub(r"\b" + re.escape(receiver) + r"\.(x|z)\b(?!\s*\()", r"" + receiver + r".\1()", text)
-    block_receivers = set(re.findall(r"\bBlockPos\s+([A-Za-z_$][\w$]*)", text))
-    for receiver in block_receivers:
-        text = re.sub(r"new ChunkPos\(" + re.escape(receiver) + r"\)", "ChunkPos.containing(" + receiver + ")", text)
-    text = re.sub(r"new ChunkPos\(([\w.]+\.getBlockPos\(\))\)", r"ChunkPos.containing(\1)", text)
     for before, after in NEOFORGE_263_LEGACY_STORAGE_RELOCATIONS:
         text = text.replace(before, after)
     text = _rewrite_263_advancement_packages(text)

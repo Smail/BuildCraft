@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import re
 
+from source_preprocessor import version_tuple
+
 _RELOCATIONS = (
     ("buildcraft.lib.compat.neoforge263.items.wrapper.CombinedInvWrapper", "buildcraft.lib.inventory.CombinedItemStorage"),
     ("net.neoforged.neoforge.items.wrapper.CombinedInvWrapper", "buildcraft.lib.inventory.CombinedItemStorage"),
@@ -42,6 +44,10 @@ _RELOCATIONS = (
 
 
 _SCREEN_FIELDS = (
+    ("getGuiLeft", "leftPos"),
+    ("getGuiTop", "topPos"),
+    ("getXSize", "imageWidth"),
+    ("getYSize", "imageHeight"),
     ("getLeftPos", "leftPos"),
     ("getTopPos", "topPos"),
     ("getImageWidth", "imageWidth"),
@@ -153,7 +159,7 @@ def _upgrade_fabric_recipe_json(text: str) -> str:
     return json.dumps(_fabric_recipe_ingredient(data), indent=2, ensure_ascii=False) + "\n"
 
 
-def upgrade_fabric_symbols(text: str, *, platform: str, relative: str) -> str:
+def upgrade_fabric_symbols(text: str, *, platform: str, relative: str, minecraft: str = "26.3") -> str:
     if platform == "fabric" and relative.replace("\\", "/").endswith(".json") and "/recipe/" in relative.replace("\\", "/"):
         return _upgrade_fabric_recipe_json(text)
     if platform != "fabric" or not relative.endswith(".java"):
@@ -193,6 +199,14 @@ def upgrade_fabric_symbols(text: str, *, platform: str, relative: str) -> str:
     text = text.replace("toolTip.add(fluid.getFluidType().getDescription())",
                         "toolTip.add(buildcraft.energy.fluid.BCFluidType.of(fluid).getDescription())")
     # Vanilla key mappings match key objects; there is no isActiveAndMatches.
+    if version_tuple(minecraft) < version_tuple("26.3"):
+        # Before 26.3 vanilla only matches key and mouse events, not raw key objects.
+        text = re.sub(
+            r"\.isActiveAndMatches\(InputConstants\.Type\.MOUSE\.getOrCreate\((\w+)\)\)",
+            r".matchesMouse(new net.minecraft.client.input.MouseButtonEvent(0.0D, 0.0D, "
+            r"new net.minecraft.client.input.MouseButtonInfo(\1, 0)))",
+            text,
+        )
     text = text.replace(".isActiveAndMatches(", ".matches(")
     # NeoForge adds screen geometry getters; vanilla exposes the same values as fields (widened by the access widener).
     for getter, field in _SCREEN_FIELDS:
