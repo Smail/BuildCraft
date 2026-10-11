@@ -16,6 +16,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -463,6 +464,67 @@ public final class BuildCraftLogicGameTests {
         require(helper, first.getCount() == 2, "higher-priority facade mapping did not win");
         first.setCount(99);
         require(helper, rules.mappedStack(state).orElseThrow().getCount() == 2, "facade mapped stack was not defensively copied");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = BCLib.MODID, template = EMPTY_TEMPLATE, timeoutTicks = 40)
+    public static void stainedGlassHasItsOwnFacade(GameTestHelper helper) {
+        Block[] blocks = { Blocks.GLASS, Blocks.RED_STAINED_GLASS, Blocks.BLUE_STAINED_GLASS };
+        java.util.Set<ItemStack> seen = new java.util.HashSet<>();
+        for (Block block : blocks) {
+            String name = BuiltInRegistries.BLOCK.getKey(block).toString();
+            buildcraft.silicon.plug.FacadeBlockStateInfo info =
+                buildcraft.silicon.plug.FacadeStateManager.getInfoForBlock(block);
+            require(helper, info != null, name + " has no facade state");
+            require(helper, info.state.getBlock() == block, name + " resolved to " + info.state.getBlock());
+            require(helper, info.requiredStack.is(block.asItem()),
+                name + " facade requires " + info.requiredStack);
+
+            var byStack = buildcraft.silicon.plug.FacadeStateManager.stackFacades
+                .get(new buildcraft.lib.misc.ItemStackKey(new ItemStack(block)));
+            require(helper, byStack != null && byStack.contains(info), name + " is not reachable by its item");
+
+            // Round trip through the NBT an assembled facade item carries.
+            var phased = info.createPhased(null);
+            var read = buildcraft.silicon.plug.FacadePhasedState.readFromNbt(phased.writeToNbt());
+            require(helper, read.stateInfo == info, name + " NBT round trip resolved to " + read.stateInfo);
+            require(helper, seen.add(info.requiredStack), name + " shares a facade stack with another block");
+
+            // The network path used when a facade item or pluggable is synced to a client.
+            var buffer = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+            phased.writeToBuffer(buffer);
+            var fromBuffer = buildcraft.silicon.plug.FacadePhasedState.readFromBuffer(buffer);
+            require(helper, fromBuffer.stateInfo == info, name + " buffer round trip resolved to " + fromBuffer.stateInfo);
+        }
+
+        // What the creative tab and the assembly table hand to the player.
+        java.util.List<ItemStack> tab = new java.util.ArrayList<>();
+        buildcraft.silicon.BCSiliconItems.PLUG_FACADE_ITEM.get().addCreativeTabItems(tab::add);
+        boolean foundRed = false;
+        for (ItemStack stack : tab) {
+            var states = buildcraft.silicon.item.ItemPluggableFacade.getStates(stack);
+            if (states.phasedStates[0].stateInfo.state.getBlock() == Blocks.RED_STAINED_GLASS) {
+                foundRed = true;
+                String displayName = stack.getHoverName().getString();
+                require(helper, displayName.contains("Red Stained Glass"),
+                    "red stained glass facade is named '" + displayName + "'");
+            }
+        }
+        require(helper, foundRed, "creative tab has no red stained glass facade (" + tab.size() + " facades)");
+
+        ItemHandlerSimple table = new ItemHandlerSimple(2);
+        table.setStackInSlot(0, new ItemStack(buildcraft.transport.BCTransportItems.PIPE_STRUCTURE.get(), 3));
+        table.setStackInSlot(1, new ItemStack(Blocks.RED_STAINED_GLASS, 64));
+        java.util.Set<ItemStack> assembled = buildcraft.silicon.recipe.FacadeAssemblyRecipes.INSTANCE.getOutputs(table);
+        require(helper, assembled.size() == 2, "assembly table offers " + assembled.size() + " facades for red stained glass");
+        for (ItemStack stack : assembled) {
+            var states = buildcraft.silicon.item.ItemPluggableFacade.getStates(stack);
+            require(helper, states.phasedStates[0].stateInfo.state.getBlock() == Blocks.RED_STAINED_GLASS,
+                "assembly table facade is " + states.phasedStates[0].stateInfo.state);
+            String displayName = stack.getHoverName().getString();
+            require(helper, displayName.contains("Red Stained Glass"),
+                "assembled facade is named '" + displayName + "'");
+        }
         helper.succeed();
     }
 

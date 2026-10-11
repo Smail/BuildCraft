@@ -265,6 +265,11 @@ public enum FacadeStateManager implements FacadeMaterialAdapter {
     public static void init() {
         defaultState = new FacadeBlockStateInfo(Blocks.AIR.defaultBlockState(), StackUtil.EMPTY, ImmutableSet.of());
 
+        // init() runs for every level load (each dimension, client and server). Rebuild from scratch,
+        // otherwise stackFacades collects one stale duplicate per run.
+        validFacadeStates.clear();
+        stackFacades.clear();
+
         for (Block block : ForgeRegistries.BLOCKS) {
             scanBlock(block);
         }
