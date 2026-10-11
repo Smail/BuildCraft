@@ -175,7 +175,7 @@ public final class NativePluggableItemModels2612 {
 
     private static ItemModel bakeFacade(KeyPlugFacade key, ItemStack stack, boolean glass) {
         List<MutableQuad> quads = new ArrayList<>();
-        for (MutableQuad source : PlugBakerFacade.INSTANCE.bakeForKey(key, false)) {
+        for (MutableQuad source : PlugBakerFacade.INSTANCE.bakeForKey(key)) {
             quads.add(new MutableQuad(source));
         }
         for (MutableQuad quad : quads) {
