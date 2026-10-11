@@ -73,22 +73,6 @@ public class FluidRenderer {
         }
     }
 
-    private static Identifier getStillTextureSafe(Fluid fluid) {
-        return getFluidTextureSafe(
-            fluid, "still",
-            () -> fluidTexture(fluid, false),
-            MissingTextureAtlasSprite::getLocation
-        );
-    }
-
-    private static Identifier getFlowingTextureSafe(Fluid fluid) {
-        return getFluidTextureSafe(
-            fluid, "flowing",
-            () -> fluidTexture(fluid, true),
-            () -> getStillTextureSafe(fluid)
-        );
-    }
-
     private static Identifier getStillTextureSafe(Fluid fluid, FluidStack stack) {
         return getFluidTextureSafe(
             fluid, "still",
