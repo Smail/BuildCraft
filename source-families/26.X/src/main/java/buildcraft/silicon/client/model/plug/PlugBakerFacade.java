@@ -219,10 +219,6 @@ public enum PlugBakerFacade implements IPluggableStaticBaker<KeyPlugFacade> {
     }
 
     public List<MutableQuad> bakeForKey(KeyPlugFacade key) {
-        return bakeForKey(key, true);
-    }
-
-    public List<MutableQuad> bakeForKey(KeyPlugFacade key, boolean applyGlassAlpha) {
         BlockStateModel model = Minecraft.getInstance().getModelManager().getBlockStateModelSet().get(key.state);
         List<MutableQuad> quads = new ArrayList<>();
         int pS = PluggableFacade.SIZE;
@@ -301,21 +297,8 @@ public enum PlugBakerFacade implements IPluggableStaticBaker<KeyPlugFacade> {
                 quad.setTint(tint * Direction.values().length + key.side.ordinal());
             }
         }
-        //? if >=26.3 {
-        // Minecraft 26.3 blends several faces of a thin translucent facade, which can
-        // make the glass appear denser than an ordinary glass block. 0.2 made the glass
-        // nearly invisible; use a moderate correction without changing RGB or texture
-        // alpha, and only for installed glass facades (not facade items).
-        if (applyGlassAlpha && PluggableFacade.isGlass(key.state)) {
-            for (MutableQuad quad : quads) {
-                quad.multColourd(1.0, 1.0, 1.0, 0.65);
-            }
-        }
-        //? }
-        //? if <26.3 {
         // Preserve source vertex/texture alpha verbatim. Extra facade alpha multiplication causes
         // both colour/opacity drift and bad composition against other translucent terrain.
-        //? }
         return quads;
     }
 

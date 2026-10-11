@@ -156,9 +156,6 @@ jobs:
       - name: Test 26.3 cushion repainting
         run: python -m unittest discover -s scripts/tests -p test_cushion_paint_263.py -v
 
-      - name: Test 26.3 facade glass alpha
-        run: python -m unittest discover -s scripts/tests -p test_facade_glass_alpha_263.py -v
-
       - name: Test 26.3 glass facade lighting
         run: python -m unittest discover -s scripts/tests -p test_glass_facade_263.py -v
 
