@@ -50,9 +50,12 @@ public class BCFactory {
 
 
     public void gatherData(GatherDataEvent.Server event) {
+//? if <26.3 {
         event.createReloadableRegistryObjects(
             new RegistrySetBuilder().add(RecipeProvider.asBootstrap(BCFactoryRecipesProvider::new))
         );
+//?}
+        // 26.3: generated recipe data is shipped as resources; runtime excludes the datagen providers.
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {

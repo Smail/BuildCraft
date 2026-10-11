@@ -1110,7 +1110,13 @@ public final class GuiGuide extends Screen {
         if (target == null || target.isEmpty()) return;
         if (target.startsWith("http://") || target.startsWith("https://")) {
             try {
+//? if >=26.3 {
+                com.mojang.blaze3d.Blaze3D.openUri(new URI(target));
+//?} else {
+/*?
                 Util.getPlatform().openUri(new URI(target));
+?*/
+//?}
             } catch (Exception ignored) {
             }
             return;
