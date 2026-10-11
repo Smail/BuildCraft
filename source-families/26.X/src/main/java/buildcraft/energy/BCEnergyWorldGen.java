@@ -1,3 +1,4 @@
+//? source if >=26.3
 package buildcraft.energy;
 
 import buildcraft.lib.platform.registry.BCRegistryBinder;
@@ -5,7 +6,7 @@ import buildcraft.lib.platform.registry.BCRegistryEntry;
 import buildcraft.lib.platform.registry.BCDeferredRegister;
 import buildcraft.energy.generation.features.OilGenFeature;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -17,7 +18,7 @@ public final class BCEnergyWorldGen {
         BCDeferredRegister.create("minecraft:worldgen/feature_type", BCEnergy.MODID);
 
     public static final TagKey<Biome> IS_OIL_BIOME = TagKey.create(
-        Registries.BIOME, ResourceLocation.fromNamespaceAndPath(BCEnergy.MODID, "is_oil_biome")
+        Registries.BIOME, Identifier.fromNamespaceAndPath(BCEnergy.MODID, "is_oil_biome")
     );
 
     public static final BCRegistryEntry<MapCodec<OilGenFeature>> OIL_FEATURE = FEATURE_REGISTER.register(

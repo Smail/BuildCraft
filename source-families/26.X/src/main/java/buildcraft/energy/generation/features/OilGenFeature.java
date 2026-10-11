@@ -2,7 +2,9 @@ package buildcraft.energy.generation.features;
 
 import java.util.List;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 
 import buildcraft.api.v2.BuildCraftApi;
 import buildcraft.api.v2.BuildCraftServices;
@@ -19,9 +21,20 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 
-public class OilGenFeature extends Feature<OilFeatureConfiguration>{
+
+public final class OilGenFeature implements Feature {
+    /** 26.3 registers a feature MapCodec (not a Feature subclass) in FEATURE_TYPE. */
+    public static final MapCodec<OilGenFeature> CODEC = OilFeatureConfiguration.CODEC
+        .xmap(OilGenFeature::new, OilGenFeature::configuration);
+
+    private final OilFeatureConfiguration configuration;
+    public OilGenFeature(OilFeatureConfiguration configuration) {
+        this.configuration = configuration;
+    }
+    public OilFeatureConfiguration configuration() { return configuration; }
+    @Override public MapCodec<OilGenFeature> codec() { return CODEC; }
+
 
     /** The distance that oil generation will be checked to see if their structures overlap with the currently
      * generating chunk. This should be large enough that all oil generation can fit inside this radius. If this number
@@ -29,18 +42,13 @@ public class OilGenFeature extends Feature<OilFeatureConfiguration>{
     private static final int MAX_CHUNK_RADIUS = 5;
 
 
-    public OilGenFeature(Codec<OilFeatureConfiguration> p_65786_) {
-        super(p_65786_);
-    }
-
     @Override
-    public boolean place(FeaturePlaceContext<OilFeatureConfiguration> context) {
-        WorldGenLevel world = context.level();
+    public boolean place(WorldGenLevel world, ChunkGenerator generator, RandomSource random, BlockPos origin) {
         if (!BCEnergyConfig.enableOilGeneration) {
             return false;
         }
 
-        ResourceDepositRule rule = resolveOilRule(world, contextOrigin(context));
+        ResourceDepositRule rule = resolveOilRule(world, origin);
         if (rule == null) {
             return false;
         }
@@ -49,22 +57,18 @@ public class OilGenFeature extends Feature<OilFeatureConfiguration>{
             return false;
         }
         double frequency = rule.frequencyMultiplier();
-        if (frequency <= 0 || (frequency < 1.0 && context.random().nextDouble() >= frequency)) {
+        if (frequency <= 0 || (frequency < 1.0 && random.nextDouble() >= frequency)) {
             return false;
         }
 
-        ChunkPos chunkPos = new ChunkPos(context.origin().getX() >> 4, context.origin().getZ() >> 4);
+        ChunkPos chunkPos = new ChunkPos(origin.getX() >> 4, origin.getZ() >> 4);
         // OilGenerator uses a short-lived shared cache. Worldgen may run dimensions in parallel,
         // so protect the complete world/config/cache transaction.
         synchronized (OilGenerator.class) {
-            return placeLocked(world, chunkPos.x(), chunkPos.z(), context.config());
+            return placeLocked(world, chunkPos.x(), chunkPos.z(), configuration);
         }
     }
 
-
-    private static BlockPos contextOrigin(FeaturePlaceContext<OilFeatureConfiguration> context) {
-        return context.origin();
-    }
 
     private static ResourceDepositRule resolveOilRule(WorldGenLevel world, BlockPos origin) {
         ResourceLocation dimension = world.getLevel().dimension().location();
