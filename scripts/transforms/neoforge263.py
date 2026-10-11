@@ -68,21 +68,15 @@ def upgrade_minecraft_263_apis(text: str, *, minecraft: str, relative: str) -> s
     if "import org.lwjgl.glfw.GLFW;" in text:
         text = text.replace("import org.lwjgl.glfw.GLFW;",
                             "import com.mojang.blaze3d.platform.InputConstants;")
-        keys = {"ENTER": "RETURN", "KP_ENTER": "NUMPADENTER", "ESCAPE": "ESCAPE",
-                "F5": "F5", "EQUAL": "EQUALS", "KP_ADD": "ADD",
-                "MINUS": "MINUS", "KP_SUBTRACT": "SUBTRACT", "M": "M"}
-        for before, after in keys.items():
-            text = text.replace("GLFW.GLFW_KEY_" + before + " ", "InputConstants.KEY_" + after + " ")
-            text = text.replace("GLFW.GLFW_KEY_" + before + ")", "InputConstants.KEY_" + after + ")")
-            text = text.replace("GLFW.GLFW_KEY_" + before + " ||", "InputConstants.KEY_" + after + " ||")
+        keys = {"ENTER": "InputConstants.KEY_RETURN",
+                "KP_ENTER": "InputConstants.KEY_NUMPADENTER",
+                "EQUAL": "InputConstants.KEY_EQUALS",
+                "KP_ADD": "InputConstants.KEY_ADD",
+                # 26.3 uses SDL scancodes rather than GLFW key values. There is no
+                # InputConstants.KEY_SUBTRACT: SDL names the numpad key KP_MINUS.
+                "KP_SUBTRACT": "org.lwjgl.sdl.SDLScancode.SDL_SCANCODE_KP_MINUS"}
         text = re.sub(r"GLFW\.GLFW_KEY_([A-Z0-9_]+)",
-                      lambda m: "InputConstants.KEY_" + keys.get(m.group(1), m.group(1)), text)
-
-    if relative.endswith("/robotics/gui/GuiZonePlanner.java"):
-        # 26.3 uses SDL scancodes rather than GLFW key values. There is no
-        # InputConstants.KEY_SUBTRACT: SDL names the numpad key KP_MINUS.
-        text = text.replace("InputConstants.KEY_SUBTRACT",
-                            "org.lwjgl.sdl.SDLScancode.SDL_SCANCODE_KP_MINUS")
+                      lambda m: keys.get(m.group(1), "InputConstants.KEY_" + m.group(1)), text)
 
     # Tool subclasses were removed with the block transformer rewrite.
     for cls, tag in (("HoeItem", "HOES"), ("AxeItem", "AXES"),
@@ -101,63 +95,5 @@ def upgrade_minecraft_263_apis(text: str, *, minecraft: str, relative: str) -> s
                   r"player.swing(\1, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true)", text)
     text = re.sub(r"\bplayer\.swingingArm\s*=\s*(\w+)\s*;",
                   r"player.swing(\1, net.minecraft.world.item.component.SwingAnimation.DEFAULT, true);", text)
-
-    if relative.endswith("/energy/BCEnergyBiomeModifiers.java"):
-        text = text.replace("import net.minecraft.core.Holder;",
-                            "import net.minecraft.core.Holder;\nimport net.minecraft.core.RegistryAccess;")
-        text = text.replace("void modify(Holder<Biome> biome, Phase phase, BiomeInfo.Builder builder)",
-                            "void modify(RegistryAccess registries, Holder<Biome> biome, Phase phase, BiomeInfo.Builder builder)")
-
-    if relative.endswith("/transport/block/BlockPipeHolder.java"):
-        text = text.replace("spawnDestroyParticles(world, player, pos, state)",
-                            "spawnDestroyParticles(world, pos, state)")
-        text = text.replace("public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, BlockEntity be,",
-                            "public void playerDestroy(ServerLevel world, Player player, BlockPos pos, BlockState state, BlockEntity be,")
-        # Block#playerDestroy now expects ServerPlayer as well as ServerLevel;
-        # preserving Player silently removes the override and fails at super.
-        text = text.replace("public void playerDestroy(ServerLevel world, Player player, BlockPos pos, BlockState state, BlockEntity be,",
-                            "public void playerDestroy(ServerLevel world, net.minecraft.server.level.ServerPlayer player, BlockPos pos, BlockState state, BlockEntity be,")
-
-    if relative.endswith("/lib/client/guide/GuiGuide.java"):
-        text = text.replace("Util.getPlatform().openUri(new URI(target))",
-                            "com.mojang.blaze3d.Blaze3D.openUri(new URI(target))")
-
-    if relative.endswith("/robotics/entity/EntityRobot.java"):
-        if "OperationMode.EXECUTE" in text and "import buildcraft.api.v2.OperationMode;" not in text:
-            text = text.replace("package buildcraft.robotics.entity;",
-                "package buildcraft.robotics.entity;\n\nimport buildcraft.api.v2.OperationMode;")
-
-    if relative.endswith("/robotics/tile/TileZonePlanner.java"):
-        text = text.replace("chunkPos.x, chunkPos.z", "chunkPos.x(), chunkPos.z()")
-
-    if relative.endswith("/silicon/client/model/plug/PlugBakerFacade.java"):
-        # 26.3 no longer has the legacy shade() flag. A null override means face-direction
-        # shading (the old shade=true); any explicit direction, including UP, overrides it.
-        # AO is an independent lighting setting: it must NOT be used to guess shade().
-        text = text.replace("material.shade()", "material.shadeDirectionOverride() == null")
-
-    if relative.endswith("/transport/client/render/RenderPipeHolder.java"):
-        # Kept as a fallback for older source variants. The selected 26.X
-        # source now implements setUv3 explicitly inside a 26.3-only branch.
-        if "public VertexConsumer setUv3(float u, float v)" not in text:
-            needle = "        public VertexConsumer setUv2(int u, int v) {\n            return this;\n        }"
-            if needle in text:
-                text = text.replace(needle, needle +
-                    "\n\n        @Override\n        public VertexConsumer setUv3(float u, float v) {\n            return this;\n        }")
-
-    if relative.endswith("/factory/BCFactory.java") or relative.endswith("/silicon/BCSilicon.java"):
-        # Recipe datagen providers are excluded from standalone runtime compilation.
-        # Their JSON output remains in resources; an uncompiled class cannot be
-        # directly referred to even from a datagen-only method.
-        text = re.sub(r"event\.createReloadableRegistryObjects\(\s*new RegistrySetBuilder\(\)\.add\(RecipeProvider\.asBootstrap\((?:BCFactoryRecipesProvider|BCSiliconRecipesProvider)::new\)\)\s*\);",
-                      "// 26.3: generated recipe data is shipped as resources; runtime excludes the datagen providers.", text)
-
-    if relative.endswith("/factory/container/ContainerAutoCraftItems.java"):
-        text = text.replace("new ItemHandlerSimple(1), access);",
-                            "new ItemProvider(slot -> net.minecraft.world.item.ItemStack.EMPTY, 1), access);")
-
-    if relative.endswith("/builders/menu/ContainerBuilder.java"):
-        text = text.replace("new ItemHandlerSimple(24), DataSlot.standalone()",
-                            "new ItemProvider(slot -> net.minecraft.world.item.ItemStack.EMPTY, 24), DataSlot.standalone()")
 
     return text

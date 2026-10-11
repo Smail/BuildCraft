@@ -812,7 +812,13 @@ public class BlockPipeHolder extends BlockBCTile_Neptune implements ICustomPaint
 		
 		if (world.isClientSide()) {
 //			return super.onDestroyedByPlayer(state, world, pos, player, toolStack, willHarvest, fluid);
+//? if >=26.3 {
+			this.spawnDestroyParticles(world, pos, state);
+//?} else {
+/*?
 			this.spawnDestroyParticles(world, player, pos, state);
+?*/
+//?}
 			if(side == null && part == null && between ==null ) {
 				
 				world.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(player, state));
@@ -908,8 +914,17 @@ public class BlockPipeHolder extends BlockBCTile_Neptune implements ICustomPaint
 		}
 	}
 
+//? if >=26.3 {
+	// Block#playerDestroy expects ServerLevel and ServerPlayer; keeping the old
+	// parameter types silently drops the override.
+	public void playerDestroy(ServerLevel world, net.minecraft.server.level.ServerPlayer player, BlockPos pos, BlockState state, BlockEntity be,
+			ItemStack stack) {
+//?} else {
+/*?
 	public void playerDestroy(Level world, Player player, BlockPos pos, BlockState state, BlockEntity be,
 			ItemStack stack) {
+?*/
+//?}
 		super.playerDestroy(world, player, pos, state, be, stack);
 	}
 
