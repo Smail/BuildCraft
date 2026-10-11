@@ -153,6 +153,24 @@ jobs:
       - name: Test 26.3 removed vanilla APIs and power bridge
         run: python -m unittest discover -s scripts/tests -p test_263_followup_api.py -v
 
+      - name: Test 26.3 cushion repainting
+        run: python -m unittest discover -s scripts/tests -p test_cushion_paint_263.py -v
+
+      - name: Test 26.3 facade glass alpha
+        run: python -m unittest discover -s scripts/tests -p test_facade_glass_alpha_263.py -v
+
+      - name: Test 26.3 glass facade lighting
+        run: python -m unittest discover -s scripts/tests -p test_glass_facade_263.py -v
+
+      - name: Test 26.3 signed baked quad normals
+        run: python -m unittest discover -s scripts/tests -p test_signed_normals_263.py -v
+
+      - name: Test paintbrush facade and pipe painting on all targets
+        run: python -m unittest discover -s scripts/tests -p test_paintbrush_all_targets.py -v
+
+      - name: Test lens and sign painting on all targets
+        run: python -m unittest discover -s scripts/tests -p test_sign_lens_paint_all_targets.py -v
+
       - name: Validate Zone Planner block preview parity
         run: python scripts/validate-zone-planner-preview.py
 
