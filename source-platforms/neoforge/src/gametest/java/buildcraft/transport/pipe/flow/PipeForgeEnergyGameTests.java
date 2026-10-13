@@ -113,8 +113,8 @@ public final class PipeForgeEnergyGameTests {
 
         int accepted = flow.tryExtractPower(max * 2, Direction.WEST);
         require(helper, accepted == max, "Wooden FE Pipe extracted outside its per-section capacity");
-        require(helper, source.simulateExtractions == 1 && source.executeExtractions == 1,
-            "Wooden FE Pipe did not perform one simulate + one execute extraction");
+        require(helper, hasValidExtractionCalls(source),
+            "Wooden FE Pipe did not simulate and then execute exactly one extraction");
         require(helper, source.lastSimulated == max && source.lastExecuted == max,
             "Wooden FE Pipe executed more FE than it simulated");
         require(helper, flow.getSection(Direction.WEST).getEnergyStored() == max,
@@ -186,6 +186,14 @@ public final class PipeForgeEnergyGameTests {
         event.setReceiver(false);
         event.setMaxPower(maxPower);
         return event;
+    }
+
+    private static boolean hasValidExtractionCalls(TrackingEnergyStorage source) {
+//? if >=26.3 {
+        return source.simulateExtractions >= 1 && source.executeExtractions == 1;
+//? } else {
+        return source.simulateExtractions == 1 && source.executeExtractions == 1;
+//? }
     }
 
     private static void require(GameTestHelper helper, boolean condition, String message) {

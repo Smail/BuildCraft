@@ -117,7 +117,7 @@ public final class PipeFluidPowerGameTests {
         PipeFlowFluids flow = new PipeFlowFluids(pipe);
         pipe.setFlow(flow);
 
-        IFluidHandler handler = flow.getCapability(CapUtil.CAP_FLUIDS, Direction.EAST);
+        IFluidHandler handler = fluidCapability(flow, Direction.EAST);
         require(helper, handler != null, "fluid pipe did not expose its fluid capability");
         require(helper, handler.getTanks() == 1, "fluid pipe capability reported no tanks");
         require(helper, handler.getTankCapacity(0) == flow.capacity, "fluid pipe reported the wrong tank capacity");
@@ -665,6 +665,17 @@ public final class PipeFluidPowerGameTests {
         return flow.extractFluidsForce(min, max, section, execute
             ? net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE
             : net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.SIMULATE);
+//? }
+    }
+
+    @Nullable
+    private static IFluidHandler fluidCapability(PipeFlowFluids flow, Direction side) {
+        java.util.Objects.requireNonNull(flow, "flow");
+        java.util.Objects.requireNonNull(side, "side");
+//? if >=26.3 {
+        return buildcraft.lib.compat.transfer.TransferInterop.importFluids(flow.resourceHandler(side));
+//? } else {
+        return flow.getCapability(CapUtil.CAP_FLUIDS, side);
 //? }
     }
 

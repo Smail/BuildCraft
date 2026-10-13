@@ -276,10 +276,10 @@ public final class PipeGameTestSupport {
         private static Object exportNative(
             Map<BlockCapability<?, Direction>, Object> exposed, BlockCapability<?, Direction> capability
         ) {
+            Object energy = exposed.get(buildcraft.lib.misc.CapUtil.CAP_FE);
             if (capability == net.neoforged.neoforge.capabilities.Capabilities.Energy.BLOCK
-                && exposed.get(buildcraft.lib.misc.CapUtil.CAP_FE)
-                    instanceof buildcraft.lib.compat.neoforge263.energy.IEnergyStorage storage) {
-                return buildcraft.lib.compat.transfer.TransferInterop.exportEnergy(() -> storage);
+                && energy instanceof buildcraft.lib.compat.neoforge263.energy.IEnergyStorage storage) {
+                return legacyEnergyHandler(storage);
             }
             if (capability == net.neoforged.neoforge.capabilities.Capabilities.Fluid.BLOCK
                 && exposed.get(buildcraft.lib.misc.CapUtil.CAP_FLUIDS)
@@ -287,6 +287,57 @@ public final class PipeGameTestSupport {
                 return buildcraft.lib.compat.transfer.TransferInterop.exportFluids(() -> handler);
             }
             return null;
+        }
+
+        /** Keep legacy FE simulation separate from the execution deferred to transaction commit. */
+        private static net.neoforged.neoforge.transfer.energy.EnergyHandler legacyEnergyHandler(
+            buildcraft.lib.compat.neoforge263.energy.IEnergyStorage storage
+        ) {
+            return new net.neoforged.neoforge.transfer.energy.EnergyHandler() {
+                @Override
+                public long getAmountAsLong() {
+                    return storage.getEnergyStored();
+                }
+
+                @Override
+                public long getCapacityAsLong() {
+                    return storage.getMaxEnergyStored();
+                }
+
+                @Override
+                public int insert(int amount, net.neoforged.neoforge.transfer.transaction.TransactionContext transaction) {
+                    if (amount < 0) {
+                        throw new IllegalArgumentException("Negative energy amount: " + amount);
+                    }
+                    if (amount == 0 || !storage.canReceive()) {
+                        return 0;
+                    }
+                    int accepted = Math.max(0, Math.min(amount, storage.receiveEnergy(amount, true)));
+                    if (accepted > 0) {
+                        buildcraft.lib.compat.transfer.TransferJournal.notifyAfterCommit(
+                            () -> storage.receiveEnergy(accepted, false)
+                        );
+                    }
+                    return accepted;
+                }
+
+                @Override
+                public int extract(int amount, net.neoforged.neoforge.transfer.transaction.TransactionContext transaction) {
+                    if (amount < 0) {
+                        throw new IllegalArgumentException("Negative energy amount: " + amount);
+                    }
+                    if (amount == 0 || !storage.canExtract()) {
+                        return 0;
+                    }
+                    int extracted = Math.max(0, Math.min(amount, storage.extractEnergy(amount, true)));
+                    if (extracted > 0) {
+                        buildcraft.lib.compat.transfer.TransferJournal.notifyAfterCommit(
+                            () -> storage.extractEnergy(extracted, false)
+                        );
+                    }
+                    return extracted;
+                }
+            };
         }
 //? }
 
