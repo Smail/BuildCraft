@@ -1,5 +1,6 @@
 package buildcraft.transport.pipe.flow;
 
+import buildcraft.api.v2.OperationMode;
 import buildcraft.api.v2.energy.MjAmount;
 import buildcraft.lib.internal.mj.MjCapabilities;
 
@@ -21,7 +22,6 @@ import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -66,18 +66,19 @@ public final class PipeFluidPowerGameTests {
         int rate = PipeApi.getFluidTransferInfo(BCTransportPipes.cobbleFluid).transferPerTick;
         FluidStack water = new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate + 25);
 
-        int simulated = flow.insertFluidsForce(water, Direction.WEST, FluidAction.SIMULATE);
+        int simulated = insertFluidsForce(flow, water, Direction.WEST, OperationMode.SIMULATE);
         require(helper, simulated == rate, "fluid simulation ignored the per-tick transfer limit");
         require(helper, totalFluid(flow) == 0, "fluid simulation mutated the pipe");
 
-        int inserted = flow.insertFluidsForce(water, Direction.WEST, FluidAction.EXECUTE);
+        int inserted = insertFluidsForce(flow, water, Direction.WEST, OperationMode.EXECUTE);
         require(helper, inserted == simulated, "executed fluid insertion disagreed with simulation");
         require(helper, totalFluid(flow) == rate, "executed insertion stored the wrong amount");
 
-        int mixed = flow.insertFluidsForce(
+        int mixed = insertFluidsForce(
+            flow,
             new FluidStack(net.minecraft.world.level.material.Fluids.LAVA, rate),
             Direction.EAST,
-            FluidAction.EXECUTE
+            OperationMode.EXECUTE
         );
         require(helper, mixed == 0, "pipe accepted lava while it already contained water");
         require(helper, totalFluid(flow) == rate, "rejected mixed fluid changed the stored amount");
@@ -127,7 +128,7 @@ public final class PipeFluidPowerGameTests {
         int rate = PipeApi.getFluidTransferInfo(BCTransportPipes.cobbleFluid).transferPerTick;
         int inserted = handler.fill(
             new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate),
-            FluidAction.EXECUTE
+            IFluidHandler.FluidAction.EXECUTE
         );
         require(helper, inserted == rate, "fluid capability filled the wrong amount");
         FluidStack reported = handler.getFluidInTank(0);
@@ -146,23 +147,24 @@ public final class PipeFluidPowerGameTests {
         pipe.setFlow(flow);
 
         int rate = PipeApi.getFluidTransferInfo(BCTransportPipes.stoneFluid).transferPerTick;
-        int inserted = flow.insertFluidsForce(
+        int inserted = insertFluidsForce(
+            flow,
             new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate),
             null,
-            FluidAction.EXECUTE
+            OperationMode.EXECUTE
         );
         require(helper, inserted == rate, "test setup failed to fill the centre section");
 
-        FluidStack belowMinimum = flow.extractFluidsForce(rate + 1, rate + 1, null, FluidAction.EXECUTE);
+        FluidStack belowMinimum = extractFluidsForce(flow, rate + 1, rate + 1, null, OperationMode.EXECUTE);
         require(helper, belowMinimum.isEmpty(), "force extraction ignored its minimum");
         require(helper, totalFluid(flow) == rate, "failed minimum check still drained fluid");
 
         int requested = Math.max(1, rate / 2);
-        FluidStack simulated = flow.extractFluidsForce(0, requested, null, FluidAction.SIMULATE);
+        FluidStack simulated = extractFluidsForce(flow, 0, requested, null, OperationMode.SIMULATE);
         require(helper, simulated.getAmount() == requested, "simulated extraction returned the wrong amount");
         require(helper, totalFluid(flow) == rate, "simulated extraction mutated the pipe");
 
-        FluidStack executed = flow.extractFluidsForce(0, requested, null, FluidAction.EXECUTE);
+        FluidStack executed = extractFluidsForce(flow, 0, requested, null, OperationMode.EXECUTE);
         require(helper, executed.getAmount() == requested, "executed extraction returned the wrong amount");
         require(helper, FluidCompatRegistry.areEquivalent(simulated, executed),
             "simulation and execution selected different fluids");
@@ -180,14 +182,16 @@ public final class PipeFluidPowerGameTests {
         PipeFlowFluids flow = new PipeFlowFluids(pipe);
         pipe.setFlow(flow);
 
-        require(helper, flow.insertFluidsForce(
-            new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate), null, FluidAction.EXECUTE
+        require(helper, insertFluidsForce(
+            flow,
+            new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate), null, OperationMode.EXECUTE
         ) == rate, "test setup failed to seed fluid pipe");
-        require(helper, flow.extractFluidsForce(0, rate, null, FluidAction.EXECUTE).getAmount() == rate,
+        require(helper, extractFluidsForce(flow, 0, rate, null, OperationMode.EXECUTE).getAmount() == rate,
             "force extraction did not fully empty the pipe");
         require(helper, totalFluid(flow) == 0, "force extraction left fluid behind");
-        require(helper, flow.insertFluidsForce(
-            new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate), null, FluidAction.EXECUTE
+        require(helper, insertFluidsForce(
+            flow,
+            new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate), null, OperationMode.EXECUTE
         ) == rate, "pipe could not be refilled after force extraction");
 
         int delay = Math.max(1, (int) Math.ceil(
@@ -214,10 +218,11 @@ public final class PipeFluidPowerGameTests {
             require(helper, second.getPipe().isConnected(Direction.WEST), "second fluid pipe did not connect west");
             PipeFlowFluids flow = (PipeFlowFluids) first.getPipe().getFlow();
             int rate = PipeApi.getFluidTransferInfo(BCTransportPipes.cobbleFluid).transferPerTick;
-            inserted[0] = flow.insertFluidsForce(
+            inserted[0] = insertFluidsForce(
+                flow,
                 new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate),
                 Direction.WEST,
-                FluidAction.EXECUTE
+                OperationMode.EXECUTE
             );
             require(helper, inserted[0] == rate, "failed to seed the fluid network");
         });
@@ -257,10 +262,11 @@ public final class PipeFluidPowerGameTests {
             helper.runAfterDelay(tick, () -> {
                 PipeFlowFluids flow = (PipeFlowFluids) first.getPipe().getFlow();
                 int rate = PipeApi.getFluidTransferInfo(BCTransportPipes.stoneFluid).transferPerTick;
-                flow.insertFluidsForce(
+                insertFluidsForce(
+                    flow,
                     new FluidStack(net.minecraft.world.level.material.Fluids.WATER, rate),
                     null,
-                    FluidAction.EXECUTE
+                    OperationMode.EXECUTE
                 );
             });
         }
@@ -288,7 +294,7 @@ public final class PipeFluidPowerGameTests {
         int initial = FluidType.BUCKET_VOLUME;
         int filled = source.tank.fill(
             new FluidStack(net.minecraft.world.level.material.Fluids.WATER, initial),
-            FluidAction.EXECUTE
+            IFluidHandler.FluidAction.EXECUTE
         );
         require(helper, filled == initial, "failed to fill source tank");
         int[] extracted = { 0 };
@@ -303,7 +309,7 @@ public final class PipeFluidPowerGameTests {
                 "wood fluid pipe faced " + behaviour.getCurrentDir() + " instead of source tank");
 
             long offered = BCTransportConfig.mjPerMillibucket * 250L;
-            long leftover = behaviour.receivePower(offered, FluidAction.EXECUTE);
+            long leftover = behaviour.receivePower(offered, IFluidHandler.FluidAction.EXECUTE);
             extracted[0] = (int) ((offered - leftover) / BCTransportConfig.mjPerMillibucket);
             require(helper, extracted[0] > 0, "powered wood fluid pipe extracted nothing");
         });
@@ -393,12 +399,12 @@ public final class PipeFluidPowerGameTests {
             long offered = 20 * mj;
             long expectedAccepted = transferInfo.transferPerTick;
 
-            long simulatedLeftover = input.receivePower(offered, FluidAction.SIMULATE);
+            long simulatedLeftover = input.receivePower(offered, IFluidHandler.FluidAction.SIMULATE);
             require(helper, input.internalNextPower == 0, "simulated MJ insertion mutated the power buffer");
             require(helper, offered - simulatedLeftover == expectedAccepted,
                 "simulated MJ insertion ignored request or pipe transfer limit");
 
-            long executedLeftover = input.receivePower(offered, FluidAction.EXECUTE);
+            long executedLeftover = input.receivePower(offered, IFluidHandler.FluidAction.EXECUTE);
             require(helper, executedLeftover == simulatedLeftover,
                 "MJ simulation and execution returned different leftovers");
             require(helper, input.internalNextPower == expectedAccepted,
@@ -443,7 +449,7 @@ public final class PipeFluidPowerGameTests {
         helper.runAfterDelay(1, flow::onTick);
         helper.runAfterDelay(2, () -> {
             flow.onTick();
-            long leftover = flow.getSection(Direction.WEST).receivePower(maxPower, FluidAction.EXECUTE);
+            long leftover = flow.getSection(Direction.WEST).receivePower(maxPower, IFluidHandler.FluidAction.EXECUTE);
             require(helper, leftover == 0, "power pipe rejected power despite three downstream requests");
         });
         helper.runAfterDelay(3, () -> {
@@ -501,7 +507,7 @@ public final class PipeFluidPowerGameTests {
         helper.runAfterDelay(3, () -> {
             transport.onTick();
             source.onTick();
-            long leftover = source.getSection(Direction.WEST).receivePower(requested, FluidAction.EXECUTE);
+            long leftover = source.getSection(Direction.WEST).receivePower(requested, IFluidHandler.FluidAction.EXECUTE);
             require(helper, leftover == 0, "source power pipe rejected downstream demand");
         });
         helper.runAfterDelay(4, () -> {
@@ -629,6 +635,39 @@ public final class PipeFluidPowerGameTests {
         return tank;
     }
 
+    private static int insertFluidsForce(
+        PipeFlowFluids flow, FluidStack fluid, @Nullable Direction from, OperationMode mode
+    ) {
+        java.util.Objects.requireNonNull(flow, "flow");
+        java.util.Objects.requireNonNull(fluid, "fluid");
+        boolean execute = java.util.Objects.requireNonNull(mode, "mode") == OperationMode.EXECUTE;
+//? if >=26.3 {
+        return flow.insertFluidsForce(fluid, from, execute
+            ? buildcraft.transport.internal.pipe.FluidAction.EXECUTE
+            : buildcraft.transport.internal.pipe.FluidAction.SIMULATE);
+//? } else {
+        return flow.insertFluidsForce(fluid, from, execute
+            ? net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE
+            : net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.SIMULATE);
+//? }
+    }
+
+    private static FluidStack extractFluidsForce(
+        PipeFlowFluids flow, int min, int max, @Nullable Direction section, OperationMode mode
+    ) {
+        java.util.Objects.requireNonNull(flow, "flow");
+        boolean execute = java.util.Objects.requireNonNull(mode, "mode") == OperationMode.EXECUTE;
+//? if >=26.3 {
+        return flow.extractFluidsForce(min, max, section, execute
+            ? buildcraft.transport.internal.pipe.FluidAction.EXECUTE
+            : buildcraft.transport.internal.pipe.FluidAction.SIMULATE);
+//? } else {
+        return flow.extractFluidsForce(min, max, section, execute
+            ? net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE
+            : net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.SIMULATE);
+//? }
+    }
+
     private static int totalFluid(PipeFlowFluids flow) {
         CompoundTag nbt = flow.writeToNbt();
         int total = 0;
@@ -695,7 +734,7 @@ public final class PipeFluidPowerGameTests {
         }
 
         @Override
-        public long receivePower(long microJoules, FluidAction action) {
+        public long receivePower(long microJoules, IFluidHandler.FluidAction action) {
             if (microJoules <= 0) {
                 return microJoules;
             }
