@@ -8,11 +8,10 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import buildcraft.gametest.EnergyTestEndpoint;
 import buildcraft.gametest.PipeGameTestSupport;
 import buildcraft.gametest.PipeGameTestSupport.TestPipe;
 import buildcraft.lib.BCLib;
@@ -67,14 +66,14 @@ public final class PipeForgeEnergyGameTests {
     @GameTest(templateNamespace = BCLib.MODID, template = PipeGameTestSupport.LARGE_EMPTY_TEMPLATE, timeoutTicks = 30)
     public static void bufferlessConsumersCreateDemandOnMultipleSides(GameTestHelper helper) {
         int max = PipeApi.getForgeEnergyTransferInfo(BCTransportPipes.woodFe).transferPerTick;
-        BufferlessReceiver east = new BufferlessReceiver(max / 2);
-        BufferlessReceiver south = new BufferlessReceiver(max / 4);
+        EnergyTestEndpoint east = EnergyTestEndpoint.bufferlessReceiver(max / 2);
+        EnergyTestEndpoint south = EnergyTestEndpoint.bufferlessReceiver(max / 4);
         TestPipe pipe = new TestPipe(helper.getLevel(), BCTransportPipes.woodFe)
             .connect(Direction.WEST, ConnectedType.TILE)
             .connect(Direction.EAST, ConnectedType.TILE)
-            .connect(Direction.SOUTH, ConnectedType.TILE)
-            .exposeCapability(Direction.EAST, Capabilities.EnergyStorage.BLOCK, east)
-            .exposeCapability(Direction.SOUTH, Capabilities.EnergyStorage.BLOCK, south);
+            .connect(Direction.SOUTH, ConnectedType.TILE);
+        east.exposeTo(pipe, Direction.EAST);
+        south.exposeTo(pipe, Direction.SOUTH);
         PipeFlowForgeEnergy flow = new PipeFlowForgeEnergy(pipe);
         pipe.setFlow(flow);
         flow.reconfigure();
@@ -90,9 +89,9 @@ public final class PipeForgeEnergyGameTests {
         helper.runAfterDelay(3, () -> {
             flow.onTick();
             int expected = max / 2 + max / 4;
-            require(helper, east.accepted + south.accepted == expected,
+            require(helper, east.received() + south.received() == expected,
                 "multi-side FE distribution created, lost, or stranded demanded energy");
-            require(helper, east.accepted > 0 && south.accepted > 0, "one FE consumer side was starved");
+            require(helper, east.received() > 0 && south.received() > 0, "one FE consumer side was starved");
             helper.succeed();
         });
     }
@@ -100,12 +99,12 @@ public final class PipeForgeEnergyGameTests {
     @GameTest(templateNamespace = BCLib.MODID, template = PipeGameTestSupport.LARGE_EMPTY_TEMPLATE, timeoutTicks = 20)
     public static void woodenFeExtractionUsesSimulationAndNeverOverfills(GameTestHelper helper) {
         int max = PipeApi.getForgeEnergyTransferInfo(BCTransportPipes.woodFe).transferPerTick;
-        TrackingEnergyStorage source = new TrackingEnergyStorage(max * 4, max * 4, true, false);
+        EnergyTestEndpoint source = EnergyTestEndpoint.source(max * 4);
         ChestBlockEntity sourceTile = new ChestBlockEntity(BlockPos.ZERO, Blocks.CHEST.defaultBlockState());
         TestPipe pipe = new TestPipe(helper.getLevel(), BCTransportPipes.woodFe)
             .connectTile(Direction.WEST, sourceTile)
-            .exposeCapability(Direction.WEST, Capabilities.EnergyStorage.BLOCK, source)
             .connect(Direction.EAST, ConnectedType.TILE);
+        source.exposeTo(pipe, Direction.WEST);
         PipeFlowForgeEnergy flow = new PipeFlowForgeEnergy(pipe);
         pipe.setFlow(flow);
         flow.reconfigure();
@@ -113,16 +112,17 @@ public final class PipeForgeEnergyGameTests {
 
         int accepted = flow.tryExtractPower(max * 2, Direction.WEST);
         require(helper, accepted == max, "Wooden FE Pipe extracted outside its per-section capacity");
-        require(helper, hasValidExtractionCalls(source),
-            "Wooden FE Pipe did not simulate and then execute exactly one extraction");
-        require(helper, source.lastSimulated == max && source.lastExecuted == max,
-            "Wooden FE Pipe executed more FE than it simulated");
+        require(helper, source.extractions() == 1, "Wooden FE Pipe did not execute exactly one source extraction");
+        require(helper, source.lastExtractRequest() == max,
+            "Wooden FE Pipe requested more FE than its section can hold");
+        require(helper, source.stored() == max * 3, "Wooden FE Pipe drained the wrong amount of FE from its source");
         require(helper, flow.getSection(Direction.WEST).getEnergyStored() == max,
             "Wooden FE Pipe did not retain extracted FE in its input section");
 
         int second = flow.tryExtractPower(max, Direction.WEST);
         require(helper, second == 0, "full Wooden FE Pipe extracted FE a second time in the same tick");
-        require(helper, source.executeExtractions == 1, "full FE section still executed source extraction");
+        require(helper, source.extractions() == 1 && source.stored() == max * 3,
+            "full FE section still extracted from its source");
         helper.succeed();
     }
 
@@ -188,84 +188,8 @@ public final class PipeForgeEnergyGameTests {
         return event;
     }
 
-    private static boolean hasValidExtractionCalls(TrackingEnergyStorage source) {
-//? if >=26.3 {
-        return source.simulateExtractions >= 1 && source.executeExtractions == 1;
-//? } else {
-        return source.simulateExtractions == 1 && source.executeExtractions == 1;
-//? }
-    }
-
     private static void require(GameTestHelper helper, boolean condition, String message) {
         if (!condition) helper.fail(message);
-    }
-
-    private static final class BufferlessReceiver implements IEnergyStorage {
-        private final int capacity;
-        private int accepted;
-
-        private BufferlessReceiver(int capacity) {
-            this.capacity = capacity;
-        }
-
-        @Override
-        public int receiveEnergy(int maxReceive, boolean simulate) {
-            int amount = Math.min(Math.max(0, maxReceive), Math.max(0, capacity - accepted));
-            if (!simulate) accepted += amount;
-            return amount;
-        }
-
-        @Override public int extractEnergy(int maxExtract, boolean simulate) { return 0; }
-        @Override public int getEnergyStored() { return 0; }
-        @Override public int getMaxEnergyStored() { return 0; }
-        @Override public boolean canExtract() { return false; }
-        @Override public boolean canReceive() { return true; }
-    }
-
-    private static final class TrackingEnergyStorage implements IEnergyStorage {
-        private int stored;
-        private final int capacity;
-        private final boolean canExtract;
-        private final boolean canReceive;
-        private int simulateExtractions;
-        private int executeExtractions;
-        private int lastSimulated;
-        private int lastExecuted;
-
-        private TrackingEnergyStorage(int stored, int capacity, boolean canExtract, boolean canReceive) {
-            this.stored = stored;
-            this.capacity = capacity;
-            this.canExtract = canExtract;
-            this.canReceive = canReceive;
-        }
-
-        @Override
-        public int receiveEnergy(int maxReceive, boolean simulate) {
-            if (!canReceive) return 0;
-            int amount = Math.min(Math.max(0, maxReceive), capacity - stored);
-            if (!simulate) stored += amount;
-            return amount;
-        }
-
-        @Override
-        public int extractEnergy(int maxExtract, boolean simulate) {
-            if (!canExtract) return 0;
-            int amount = Math.min(Math.max(0, maxExtract), stored);
-            if (simulate) {
-                simulateExtractions++;
-                lastSimulated = maxExtract;
-            } else {
-                executeExtractions++;
-                lastExecuted = maxExtract;
-                stored -= amount;
-            }
-            return amount;
-        }
-
-        @Override public int getEnergyStored() { return stored; }
-        @Override public int getMaxEnergyStored() { return capacity; }
-        @Override public boolean canExtract() { return canExtract; }
-        @Override public boolean canReceive() { return canReceive; }
     }
 
 }
